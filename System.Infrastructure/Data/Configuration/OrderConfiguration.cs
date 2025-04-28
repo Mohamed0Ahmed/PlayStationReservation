@@ -12,21 +12,25 @@ namespace System.Infrastructure.Data.Configuration
                 .HasPrecision(18, 2);
 
             builder.Property(o => o.PaymentMethod)
-                .IsRequired();
+                .IsRequired()
+                .HasMaxLength(50);
 
             builder.Property(o => o.Status)
-                .IsRequired();
+                .IsRequired()
+                .HasMaxLength(50);
 
             builder.Property(o => o.RejectionReason)
                 .HasMaxLength(500);
 
             builder.HasOne(o => o.Customer)
                 .WithMany(c => c.Orders)
-                .HasForeignKey(o => o.CustomerId);
+                .HasForeignKey(o => o.CustomerId)
+                .OnDelete(DeleteBehavior.NoAction); 
 
             builder.HasOne(o => o.Room)
                 .WithMany(r => r.Orders)
-                .HasForeignKey(o => o.RoomId);
+                .HasForeignKey(o => o.RoomId)
+                .OnDelete(DeleteBehavior.NoAction); 
         }
     }
 }

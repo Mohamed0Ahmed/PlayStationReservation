@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Infrastructure.Data;
+using System.Infrastructure.Unit;
 
 namespace System.Infrastructure
 {
@@ -14,7 +14,8 @@ namespace System.Infrastructure
                 options.UseSqlServer(configuration.GetConnectionString("AppContext")));
 
 
-    
+
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             return services;
         }

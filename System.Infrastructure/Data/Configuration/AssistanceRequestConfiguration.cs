@@ -21,11 +21,13 @@ namespace System.Infrastructure.Data.Configuration
 
             builder.HasOne(ar => ar.Customer)
                 .WithMany(c => c.AssistanceRequests)
-                .HasForeignKey(ar => ar.CustomerId);
+                .HasForeignKey(ar => ar.CustomerId)
+                .OnDelete(DeleteBehavior.NoAction); 
 
             builder.HasOne(ar => ar.Room)
                 .WithMany(r => r.AssistanceRequests)
-                .HasForeignKey(ar => ar.RoomId);
+                .HasForeignKey(ar => ar.RoomId)
+                .OnDelete(DeleteBehavior.NoAction); 
         }
     }
 }

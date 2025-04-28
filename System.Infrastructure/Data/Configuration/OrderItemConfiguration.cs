@@ -10,14 +10,15 @@ namespace System.Infrastructure.Data.Configuration
         {
             builder.HasKey(oi => new { oi.OrderId, oi.MenuItemId });
 
-
             builder.HasOne(oi => oi.Order)
                 .WithMany(o => o.OrderItems)
-                .HasForeignKey(oi => oi.OrderId);
+                .HasForeignKey(oi => oi.OrderId)
+                .OnDelete(DeleteBehavior.NoAction); 
 
             builder.HasOne(oi => oi.MenuItem)
                 .WithMany()
-                .HasForeignKey(oi => oi.MenuItemId);
+                .HasForeignKey(oi => oi.MenuItemId)
+                .OnDelete(DeleteBehavior.NoAction);
         }
     }
 }
