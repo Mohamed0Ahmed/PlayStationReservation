@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using System.Infrastructure;
+using System.Application;
 using System.Infrastructure.Data;
 
 namespace MvcProject
@@ -13,11 +14,12 @@ namespace MvcProject
 
             #region services
 
-
             builder.Services.AddControllersWithViews();
+
+
+
             builder.Services.AddInfrastructure(builder.Configuration);
-
-
+            builder.Services.AddApplication();
 
             builder.Services.AddIdentity<IdentityUser, IdentityRole>()
                             .AddEntityFrameworkStores<AppDbContext>()
