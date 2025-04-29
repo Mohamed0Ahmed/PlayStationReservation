@@ -30,10 +30,7 @@ namespace System.Infrastructure.Unit
 
         public async Task<int> SaveChangesAsync()
         {
-            if (_transaction != null)
-            {
-                throw new InvalidOperationException("Cannot save changes while a transaction is still open. Commit or rollback the transaction first.");
-            }
+        
             return await _context.SaveChangesAsync();
         }
 

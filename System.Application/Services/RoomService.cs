@@ -16,9 +16,9 @@ namespace System.Application.Services
             _storeService = storeService;
         }
 
-        public async Task<Room> GetRoomByIdAsync(int id)
+        public async Task<Room> GetRoomByIdAsync(int id, bool includeDeleted = false)
         {
-            var room = await _unitOfWork.GetRepository<Room, int>().GetByIdWithIncludesAsync(id, false, r => r.Orders, r => r.AssistanceRequests);
+            var room = await _unitOfWork.GetRepository<Room, int>().GetByIdAsync(id, includeDeleted); ;
             if (room == null)
                 throw new CustomException("Room not found.", 404);
             return room;
@@ -26,7 +26,7 @@ namespace System.Application.Services
 
         public async Task<IEnumerable<Room>> GetAllRoomsAsync(int storeId, bool includeDeleted = false)
         {
-            var store = await _storeService.GetStoreByIdAsync(storeId, includeDeleted);
+            var store = await _storeService.GetStoreByIdAsync(storeId);
             return await _unitOfWork.GetRepository<Room, int>().FindWithIncludesAsync(r => r.StoreId == storeId, includeDeleted, r => r.Orders, r => r.AssistanceRequests);
         }
 
@@ -37,7 +37,6 @@ namespace System.Application.Services
             if (string.IsNullOrWhiteSpace(room.Password))
                 throw new CustomException("Room password is required.", 400);
 
-            // Check for duplicate Username and StoreId
             var existingRoom = (await _unitOfWork.GetRepository<Room, int>().FindAsync(r => r.Username == room.Username && r.StoreId == room.StoreId && !r.IsDeleted)).FirstOrDefault();
             if (existingRoom != null)
                 throw new CustomException($"A room with the username '{room.Username}' already exists for this store.", 400);
@@ -55,7 +54,6 @@ namespace System.Application.Services
             if (string.IsNullOrWhiteSpace(room.Password))
                 throw new CustomException("Room password is required.", 400);
 
-            // Check for duplicate Username and StoreId (excluding the current room)
             var duplicateRoom = (await _unitOfWork.GetRepository<Room, int>().FindAsync(r => r.Username == room.Username && r.StoreId == room.StoreId && r.Id != room.Id && !r.IsDeleted)).FirstOrDefault();
             if (duplicateRoom != null)
                 throw new CustomException($"Another room with the username '{room.Username}' already exists for this store.", 400);
@@ -71,32 +69,8 @@ namespace System.Application.Services
         public async Task DeleteRoomAsync(int id)
         {
             var room = await GetRoomByIdAsync(id);
-            await _unitOfWork.BeginTransactionAsync();
-            try
-            {
-                // Soft delete all related Orders
-                var orders = await _unitOfWork.GetRepository<Order, int>().FindAsync(o => o.RoomId == id && !o.IsDeleted);
-                foreach (var order in orders)
-                {
-                    _unitOfWork.GetRepository<Order, int>().Delete(order);
-                }
-
-                // Soft delete all related AssistanceRequests
-                var assistanceRequests = await _unitOfWork.GetRepository<AssistanceRequest, int>().FindAsync(ar => ar.RoomId == id && !ar.IsDeleted);
-                foreach (var assistanceRequest in assistanceRequests)
-                {
-                    _unitOfWork.GetRepository<AssistanceRequest, int>().Delete(assistanceRequest);
-                }
-
-                _unitOfWork.GetRepository<Room, int>().Delete(room);
-                await _unitOfWork.SaveChangesAsync();
-                await _unitOfWork.CommitTransactionAsync();
-            }
-            catch
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                throw new CustomException("Failed to delete room.", 500);
-            }
+            _unitOfWork.GetRepository<Room, int>().Delete(room);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task RestoreRoomAsync(int id)

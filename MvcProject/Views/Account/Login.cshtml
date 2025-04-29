@@ -1,34 +1,43 @@
-﻿@{
-    ViewData["Title"] = "Log in";
+﻿@model LoginViewModel
+
+@{
+    ViewData["Title"] = "Login";
 }
 
+<h2>Login</h2>
 
-
-
-<div class="row justify-content-center">
-    <div class="col-md-4">
-        <h2>@ViewData["Title"]</h2>
-        <hr />
-        <form asp-action="Login" method="post">
-            <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="mb-3">
-                <label for="email" class="form-label">Email</label>
-                <input id="email" name="email" class="form-control" />
-            </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
-                <input id="password" name="password" type="password" class="form-control" />
-            </div>
-            <div class="mb-3">
-                <div class="form-check">
-                    <input id="rememberMe" name="rememberMe" type="checkbox" class="form-check-input" />
-                    <label for="rememberMe" class="form-check-label">Remember me</label>
-                </div>
-            </div>
-            <div class="mb-3">
-                <button type="submit" class="btn btn-primary w-100">Log in</button>
-            </div>
-        </form>
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["ErrorMessage"]
     </div>
-</div>
+}
+
+<form asp-action="Login" method="post">
+    <input type="hidden" asp-for="ReturnUrl" />
+
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="form-group">
+        <label asp-for="Email"></label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Password"></label>
+        <input asp-for="Password" class="form-control" />
+        <span asp-validation-for="Password" class="text-danger"></span>
+    </div>
+
+    <div class="form-group form-check">
+        <input asp-for="RememberMe" class="form-check-input" />
+        <label asp-for="RememberMe" class="form-check-label">Remember me?</label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Login</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

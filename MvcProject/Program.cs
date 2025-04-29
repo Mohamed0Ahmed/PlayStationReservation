@@ -47,16 +47,27 @@ namespace MvcProject
             using (var scope = app.Services.CreateScope())
             {
                 var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-                await SeedAdminUser(userManager);
+                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+                await SeedAdminUser(userManager, roleManager);
             }
 
             await app.RunAsync(); 
         }
 
-        private static async Task SeedAdminUser(UserManager<IdentityUser> userManager)
+        async static Task  SeedAdminUser(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             string adminEmail = "admin@admin.com";
             string adminPassword = "Admin@123";
+
+            if (!await roleManager.RoleExistsAsync("Admin"))
+            {
+                await roleManager.CreateAsync(new IdentityRole("Admin"));
+            }
+
+            if (!await roleManager.RoleExistsAsync("Owner"))
+            {
+                await roleManager.CreateAsync(new IdentityRole("Owner"));
+            }
 
             if (await userManager.FindByEmailAsync(adminEmail) == null)
             {
@@ -67,7 +78,16 @@ namespace MvcProject
                     EmailConfirmed = true
                 };
 
-                await userManager.CreateAsync(adminUser, adminPassword);
+                var result = await userManager.CreateAsync(adminUser, adminPassword);
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(adminUser, "Admin");
+                    await userManager.AddToRoleAsync(adminUser, "Owner");
+                }
+                else
+                {
+                    throw new Exception("Failed to create admin user: " + string.Join(", ", result.Errors.Select(e => e.Description)));
+                }
             }
         }
     }

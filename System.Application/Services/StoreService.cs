@@ -34,7 +34,6 @@ namespace System.Application.Services
             if (string.IsNullOrWhiteSpace(store.OwnerEmail))
                 throw new CustomException("Owner email is required.", 400);
 
-            // Check for duplicate OwnerEmail
             var existingStore = (await _unitOfWork.GetRepository<Store, int>().FindAsync(s => s.OwnerEmail == store.OwnerEmail && !s.IsDeleted)).FirstOrDefault();
             if (existingStore != null)
                 throw new CustomException("A store with this owner email already exists.", 400);
@@ -51,7 +50,6 @@ namespace System.Application.Services
             if (string.IsNullOrWhiteSpace(store.OwnerEmail))
                 throw new CustomException("Owner email is required.", 400);
 
-            // Check for duplicate OwnerEmail (excluding the current store)
             var duplicateStore = (await _unitOfWork.GetRepository<Store, int>().FindAsync(s => s.OwnerEmail == store.OwnerEmail && s.Id != store.Id && !s.IsDeleted)).FirstOrDefault();
             if (duplicateStore != null)
                 throw new CustomException("Another store with this owner email already exists.", 400);
@@ -69,33 +67,52 @@ namespace System.Application.Services
             try
             {
                 // Soft delete all related Rooms
-                var rooms = await _unitOfWork.GetRepository<Room, int>().FindAsync(r => r.StoreId == id && !r.IsDeleted);
-                foreach (var room in rooms)
+                if (store.Rooms != null)
                 {
-                    _unitOfWork.GetRepository<Room, int>().Delete(room);
+                    foreach (var room in store.Rooms.Where(r => !r.IsDeleted))
+                    {
+                        _unitOfWork.GetRepository<Room, int>().Delete(room);
+                    }
                 }
 
                 _unitOfWork.GetRepository<Store, int>().Delete(store);
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitTransactionAsync();
             }
-            catch
+            catch (Exception ex)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                throw new CustomException("Failed to delete store.", 500);
+                throw new CustomException($"Failed to delete store: {ex.Message}", 500);
             }
         }
 
         public async Task RestoreStoreAsync(int id)
         {
-            var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(id, true);
-            if (store == null)
-                throw new CustomException("Store not found.", 404);
+            var store = await GetStoreByIdAsync(id, true);
             if (!store.IsDeleted)
                 throw new CustomException("Store is not deleted.", 400);
 
-            await _unitOfWork.GetRepository<Store, int>().RestoreAsync(id);
-            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                // Restore all related Rooms
+                if (store.Rooms != null)
+                {
+                    foreach (var room in store.Rooms.Where(r => r.IsDeleted))
+                    {
+                        await _unitOfWork.GetRepository<Room, int>().RestoreAsync(room.Id);
+                    }
+                }
+
+                await _unitOfWork.GetRepository<Store, int>().RestoreAsync(id);
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                throw new CustomException("Failed to restore store.", 500);
+            }
         }
     }
 }

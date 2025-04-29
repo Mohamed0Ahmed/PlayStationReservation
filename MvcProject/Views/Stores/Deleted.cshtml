@@ -1,5 +1,4 @@
-﻿@model IEnumerable<System.Domain.Models.Store>
-@using System.Domain.Models
+﻿@model IEnumerable<StoreViewModel>
 
 @{
     ViewData["Title"] = "Deleted Stores";
@@ -7,13 +6,18 @@
 
 <h2>Deleted Stores</h2>
 
-
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["ErrorMessage"]
+    </div>
+}
 
 <p>
-    <a asp-action="Index" class="btn btn-secondary">Show Active</a>
+    <a asp-action="Index" class="btn btn-secondary">View Active Stores</a>
 </p>
 
-<table class="table table-bordered table-striped">
+<table class="table">
     <thead>
         <tr>
             <th>Name</th>
@@ -22,53 +26,16 @@
         </tr>
     </thead>
     <tbody>
-        @if (!Model.Any())
+        @foreach (var store in Model)
         {
             <tr>
-                <td colspan="3">No deleted stores found.</td>
-            </tr>
-        }
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>@Html.DisplayFor(modelItem => item.Name)</td>
-                <td>@Html.DisplayFor(modelItem => item.OwnerEmail)</td>
+                <td>@store.Name</td>
+                <td>@store.OwnerEmail</td>
+         
                 <td>
-                    <form asp-action="Restore" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to restore this store?');">
-                        <button type="submit" class="btn btn-sm btn-success">Restore</button>
+                    <form asp-action="Restore" asp-route-id="@store.Id" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Are you sure you want to restore this store?')">Restore</button>
                     </form>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="3">
-                    <h5>Deleted Rooms for @item.Name</h5>
-                    @{
-                        var rooms = ViewData[$"Rooms_{item.Id}"] as IEnumerable<Room>;
-                        if (rooms != null && rooms.Any())
-                        {
-                            <table class="table table-sm table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>Username</th>
-                                        <th>Password</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var room in rooms)
-                                    {
-                                        <tr>
-                                            <td>@room.Username</td>
-                                            <td>@room.Password</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        }
-                        else
-                        {
-                            <p>No deleted rooms found for this store.</p>
-                        }
-                    }
                 </td>
             </tr>
         }

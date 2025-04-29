@@ -35,7 +35,6 @@ namespace System.Application.Services
             if (string.IsNullOrWhiteSpace(menuCategory.Name))
                 throw new CustomException("Menu category name is required.", 400);
 
-            // Check for duplicate Name and StoreId
             var existingCategory = (await _unitOfWork.GetRepository<MenuCategory, int>().FindAsync(mc => mc.Name == menuCategory.Name && mc.StoreId == menuCategory.StoreId && !mc.IsDeleted)).FirstOrDefault();
             if (existingCategory != null)
                 throw new CustomException($"A menu category with the name '{menuCategory.Name}' already exists for this store.", 400);
@@ -51,7 +50,6 @@ namespace System.Application.Services
             if (string.IsNullOrWhiteSpace(menuCategory.Name))
                 throw new CustomException("Menu category name is required.", 400);
 
-            // Check for duplicate Name and StoreId (excluding the current category)
             var duplicateCategory = (await _unitOfWork.GetRepository<MenuCategory, int>().FindAsync(mc => mc.Name == menuCategory.Name && mc.StoreId == menuCategory.StoreId && mc.Id != menuCategory.Id && !mc.IsDeleted)).FirstOrDefault();
             if (duplicateCategory != null)
                 throw new CustomException($"Another menu category with the name '{menuCategory.Name}' already exists for this store.", 400);
@@ -66,25 +64,8 @@ namespace System.Application.Services
         public async Task DeleteMenuCategoryAsync(int id)
         {
             var menuCategory = await GetMenuCategoryByIdAsync(id);
-            await _unitOfWork.BeginTransactionAsync();
-            try
-            {
-                // Soft delete all related MenuItems
-                var menuItems = await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(mi => mi.MenuCategoryId == id && !mi.IsDeleted);
-                foreach (var menuItem in menuItems)
-                {
-                    _unitOfWork.GetRepository<MenuItem, int>().Delete(menuItem);
-                }
-
-                _unitOfWork.GetRepository<MenuCategory, int>().Delete(menuCategory);
-                await _unitOfWork.SaveChangesAsync();
-                await _unitOfWork.CommitTransactionAsync();
-            }
-            catch
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                throw new CustomException("Failed to delete menu category.", 500);
-            }
+            _unitOfWork.GetRepository<MenuCategory, int>().Delete(menuCategory);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task RestoreMenuCategoryAsync(int id)

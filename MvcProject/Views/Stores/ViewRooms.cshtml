@@ -1,0 +1,81 @@
+﻿@model StoreRoomsViewModel
+
+@{
+    ViewData["Title"] = "Rooms for Store: " + Model.StoreName;
+}
+
+<h2>Rooms for Store: @Model.StoreName</h2>
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["ErrorMessage"]
+    </div>
+}
+
+<p>
+    <a asp-action="Index" class="btn btn-secondary">Back to Stores</a>
+    <a asp-controller="Rooms" asp-action="Create" asp-route-storeId="@Model.StoreId" class="btn btn-success">Add Room</a>
+</p>
+
+<h3>Active Rooms</h3>
+@if (Model.ActiveRooms.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Password</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var room in Model.ActiveRooms)
+            {
+                <tr>
+                    <td>@room.Username</td>
+                    <td>@room.Password</td>
+                    <td>
+                        <form asp-action="DeleteRoom" asp-route-storeId="@Model.StoreId" asp-route-roomId="@room.Id" method="post" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this room?')">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No active rooms available.</p>
+}
+
+<h3>Deleted Rooms</h3>
+@if (Model.DeletedRooms.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var room in Model.DeletedRooms)
+            {
+                <tr>
+                    <td>@room.Username</td>
+                    <td>
+                        <form asp-action="RestoreRoom" asp-route-storeId="@Model.StoreId" asp-route-roomId="@room.Id" method="post" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Are you sure you want to restore this room?')">Restore</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No deleted rooms available.</p>
+}

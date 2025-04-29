@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using MvcProject.Models;
 
 namespace MvcProject.Controllers
 {
@@ -9,6 +10,15 @@ namespace MvcProject.Controllers
     {
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly ILogger<AccountController> _logger;
+
+        public AccountController(SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager, ILogger<AccountController> logger)
+        {
+            _signInManager = signInManager;
+            _userManager = userManager;
+            _logger = logger;
+        }
+
         private void CheckForErrorMessage()
         {
             if (HttpContext.Items.ContainsKey("ErrorMessage"))
@@ -17,49 +27,66 @@ namespace MvcProject.Controllers
             }
         }
 
-        public AccountController(SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager)
-        {
-            _signInManager = signInManager;
-            _userManager = userManager;
-        }
-
-
-        public IActionResult Login(string returnUrl = null!)
+        public IActionResult Login(string returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
-            return View();
+            return View(new LoginViewModel { ReturnUrl = returnUrl });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(string email, string password, bool rememberMe, string returnUrl = null!)
+        public async Task<IActionResult> Login(LoginViewModel model)
         {
-            ViewData["ReturnUrl"] = returnUrl;
-
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                var result = await _signInManager.PasswordSignInAsync(email, password, rememberMe, lockoutOnFailure: false);
+                CheckForErrorMessage();
+                return View(model);
+            }
+
+            try
+            {
+                var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: true);
                 if (result.Succeeded)
                 {
-                    returnUrl = returnUrl ?? Url.Action("Index", "Home")!;
-                    return LocalRedirect(returnUrl);
+                    _logger.LogInformation("User {Email} logged in successfully.", model.Email);
+                    string returnUrl = model.ReturnUrl ?? Url.Action("Index", "Home")!;
+                    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                    {
+                        return LocalRedirect(returnUrl);
+                    }
+                    return RedirectToAction("Index", "Home");
+                }
+                else if (result.IsLockedOut)
+                {
+                    _logger.LogWarning("User {Email} is locked out due to multiple failed login attempts.", model.Email);
+                    ModelState.AddModelError(string.Empty, "This account has been locked out. Please try again later.");
                 }
                 else
                 {
+                    _logger.LogWarning("Failed login attempt for user {Email}.", model.Email);
                     ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-                    return View();
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while logging in user {Email}.", model.Email);
+                ModelState.AddModelError(string.Empty, "An unexpected error occurred. Please try again later.");
+            }
+
             CheckForErrorMessage();
-            return View();
+            return View(model);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
+            var userEmail = User.Identity?.Name;
             await _signInManager.SignOutAsync();
+            _logger.LogInformation("User {Email} logged out successfully.", userEmail ?? "Unknown");
             return RedirectToAction("Index", "Home");
         }
     }
+
+  
 }

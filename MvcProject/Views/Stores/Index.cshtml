@@ -1,5 +1,4 @@
-﻿@model IEnumerable<System.Domain.Models.Store>
-@using System.Domain.Models
+﻿@model IEnumerable<StoreViewModel>
 
 @{
     ViewData["Title"] = "Stores";
@@ -7,15 +6,19 @@
 
 <h2>Active Stores</h2>
 
-
-
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["ErrorMessage"]
+    </div>
+}
 
 <p>
-    <a asp-action="Create" class="btn btn-primary">Create New</a>
-    <a asp-action="Deleted" class="btn btn-secondary">Show Deleted</a>
+    <a asp-action="Create" class="btn btn-primary">Create New Store</a>
+    <a asp-action="Deleted" class="btn btn-secondary">View Deleted Stores</a>
 </p>
 
-<table class="table table-bordered table-striped">
+<table class="table">
     <thead>
         <tr>
             <th>Name</th>
@@ -24,55 +27,18 @@
         </tr>
     </thead>
     <tbody>
-        @if (!Model.Any())
+        @foreach (var store in Model)
         {
             <tr>
-                <td colspan="3">No active stores found.</td>
-            </tr>
-        }
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>@Html.DisplayFor(modelItem => item.Name)</td>
-                <td>@Html.DisplayFor(modelItem => item.OwnerEmail)</td>
+                <td>@store.Name</td>
+                <td>@store.OwnerEmail</td>
+          
                 <td>
-                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Edit</a>
-                    <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this store?');">
-                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                    <a asp-action="ViewRooms" asp-route-storeId="@store.Id" class="btn btn-sm btn-info">View Rooms</a>
+                    <a asp-action="Edit" asp-route-id="@store.Id" class="btn btn-sm btn-primary">Edit</a>
+                    <form asp-action="Delete" asp-route-id="@store.Id" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this store?')">Delete</button>
                     </form>
-                    <a asp-controller="Rooms" asp-action="Create" asp-route-storeId="@item.Id" class="btn btn-sm btn-primary">Add Room</a>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="3">
-                    <h5>Active Rooms for @item.Name</h5>
-                    @{
-                        var rooms = ViewData[$"Rooms_{item.Id}"] as IEnumerable<Room>;
-                        if (rooms != null && rooms.Any())
-                        {
-                            <table class="table table-sm table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>Username</th>
-                                        <th>Password</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var room in rooms)
-                                    {
-                                        <tr>
-                                            <td>@room.Username</td>
-                                            <td>@room.Password</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        }
-                        else
-                        {
-                            <p>No active rooms found for this store.</p>
-                        }
-                    }
                 </td>
             </tr>
         }

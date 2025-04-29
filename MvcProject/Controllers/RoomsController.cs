@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Domain.Models;
 using System.Application.Abstraction;
+using MvcProject.Models;
 
 namespace MvcProject.Controllers
 {
@@ -10,6 +11,13 @@ namespace MvcProject.Controllers
     {
         private readonly IRoomService _roomService;
         private readonly IStoreService _storeService;
+
+        public RoomsController(IRoomService roomService, IStoreService storeService)
+        {
+            _roomService = roomService;
+            _storeService = storeService;
+        }
+
         private void CheckForErrorMessage()
         {
             if (HttpContext.Items.ContainsKey("ErrorMessage"))
@@ -18,40 +26,7 @@ namespace MvcProject.Controllers
             }
         }
 
-        public RoomsController(IRoomService roomService, IStoreService storeService)
-        {
-            _roomService = roomService;
-            _storeService = storeService;
-        }
-
-        public async Task<IActionResult> Index(int storeId)
-        {
-            var store = await _storeService.GetStoreByIdAsync(storeId);
-            if (store == null)
-            {
-                return NotFound();
-            }
-            ViewBag.Store = store;
-
-            var rooms = await _roomService.GetAllRoomsAsync(storeId, false);
-            CheckForErrorMessage();
-            return View(rooms);
-        }
-
-        public async Task<IActionResult> Deleted(int storeId)
-        {
-            var store = await _storeService.GetStoreByIdAsync(storeId);
-            if (store == null)
-            {
-                return NotFound();
-            }
-            ViewBag.Store = store;
-
-            var rooms = await _roomService.GetAllRoomsAsync(storeId, true);
-            CheckForErrorMessage();
-            return View(rooms);
-        }
-
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create(int storeId)
         {
             var store = await _storeService.GetStoreByIdAsync(storeId);
@@ -59,28 +34,47 @@ namespace MvcProject.Controllers
             {
                 return NotFound();
             }
-            var room = new Room { StoreId = storeId };
+
+            var roomViewModel = new RoomViewModel { StoreId = storeId };
             ViewBag.Store = store;
-            CheckForErrorMessage();
-            return View(room);
+            return View(roomViewModel);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Room room)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create(RoomViewModel roomViewModel)
         {
-            if (room.StoreId != 0)
+            if (!ModelState.IsValid)
             {
-                await _roomService.AddRoomAsync(room);
-                return RedirectToAction("Index", "Stores");
+                var store = await _storeService.GetStoreByIdAsync(roomViewModel.StoreId);
+                ViewBag.Store = store;
+                CheckForErrorMessage();
+                return View(roomViewModel);
             }
 
-            var store = await _storeService.GetStoreByIdAsync(room.StoreId);
-            ViewBag.Store = store;
-            CheckForErrorMessage();
-            return View(room);
+            try
+            {
+                var room = new Room
+                {
+                    StoreId = roomViewModel.StoreId,
+                    Username = roomViewModel.Username,
+                    Password = roomViewModel.Password
+                };
+                await _roomService.AddRoomAsync(room);
+                return RedirectToAction("ViewRooms", "Stores", new { storeId = roomViewModel.StoreId });
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Failed to create room: {ex.Message}";
+                var store = await _storeService.GetStoreByIdAsync(roomViewModel.StoreId);
+                ViewBag.Store = store;
+                CheckForErrorMessage();
+                return View(roomViewModel);
+            }
         }
 
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int storeId, int roomId)
         {
             var room = await _roomService.GetRoomByIdAsync(roomId);
@@ -89,61 +83,60 @@ namespace MvcProject.Controllers
                 return NotFound();
             }
 
+            var roomViewModel = new RoomViewModel
+            {
+                Id = room.Id,
+                StoreId = room.StoreId,
+                Username = room.Username,
+                Password = room.Password
+            };
+
             var store = await _storeService.GetStoreByIdAsync(storeId);
             ViewBag.Store = store;
             CheckForErrorMessage();
-            return View(room);
+            return View(roomViewModel);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int storeId, int roomId, Room room)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Edit(int storeId, int roomId, RoomViewModel roomViewModel)
         {
-            if (roomId != room.Id || storeId != room.StoreId)
+            if (roomId != roomViewModel.Id || storeId != roomViewModel.StoreId)
             {
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
+                var store = await _storeService.GetStoreByIdAsync(storeId);
+                ViewBag.Store = store;
+                CheckForErrorMessage();
+                return View(roomViewModel);
+            }
+
+            try
+            {
+                var room = new Room
+                {
+                    Id = roomViewModel.Id,
+                    StoreId = roomViewModel.StoreId,
+                    Username = roomViewModel.Username,
+                    Password = roomViewModel.Password
+                };
                 await _roomService.UpdateRoomAsync(room);
-                return RedirectToAction("Index", "Stores");
+                return RedirectToAction("ViewRooms", "Stores", new { storeId = roomViewModel.StoreId });
             }
-
-            var store = await _storeService.GetStoreByIdAsync(storeId);
-            ViewBag.Store = store;
-            CheckForErrorMessage();
-            return View(room);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int storeId, int roomId)
-        {
-            var room = await _roomService.GetRoomByIdAsync(roomId);
-            if (room == null || room.StoreId != storeId)
+            catch (Exception ex)
             {
-                return NotFound();
+                TempData["ErrorMessage"] = $"Failed to update room: {ex.Message}";
+                var store = await _storeService.GetStoreByIdAsync(storeId);
+                ViewBag.Store = store;
+                CheckForErrorMessage();
+                return View(roomViewModel);
             }
-
-            await _roomService.DeleteRoomAsync(roomId);
-            CheckForErrorMessage();
-            return RedirectToAction("Index", "Stores");
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Restore(int storeId, int roomId)
-        {
-            var room = await _roomService.GetRoomByIdAsync(roomId);
-            if (room == null || room.StoreId != storeId)
-            {
-                return NotFound();
-            }
-
-            await _roomService.RestoreRoomAsync(roomId);
-            CheckForErrorMessage();
-            return RedirectToAction("Deleted", new { storeId });
         }
     }
+
+
 }
