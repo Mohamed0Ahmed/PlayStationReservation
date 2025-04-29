@@ -11,6 +11,14 @@ namespace MvcProject.Controllers
         private readonly IStoreService _storeService;
         private readonly IRoomService _roomService;
 
+        private void CheckForErrorMessage()
+        {
+            if (HttpContext.Items.ContainsKey("ErrorMessage"))
+            {
+                TempData["ErrorMessage"] = HttpContext.Items["ErrorMessage"]?.ToString();
+            }
+        }
+
         public StoresController(IStoreService storeService, IRoomService roomService)
         {
             _storeService = storeService;
@@ -26,6 +34,7 @@ namespace MvcProject.Controllers
                 var rooms = await _roomService.GetAllRoomsAsync(store.Id, false);
                 ViewData[$"Rooms_{store.Id}"] = rooms;
             }
+            CheckForErrorMessage();
             return View(stores);
         }
 
@@ -38,6 +47,7 @@ namespace MvcProject.Controllers
                 var rooms = await _roomService.GetAllRoomsAsync(store.Id, true);
                 ViewData[$"Rooms_{store.Id}"] = rooms;
             }
+            CheckForErrorMessage();
             return View(stores);
         }
 
@@ -55,6 +65,7 @@ namespace MvcProject.Controllers
                 await _storeService.AddStoreAsync(store);
                 return RedirectToAction(nameof(Index));
             }
+            CheckForErrorMessage();
             return View(store);
         }
 
@@ -78,6 +89,7 @@ namespace MvcProject.Controllers
                 await _storeService.UpdateStoreAsync(store);
                 return RedirectToAction(nameof(Index));
             }
+            CheckForErrorMessage();
             return View(store);
         }
 
@@ -86,6 +98,7 @@ namespace MvcProject.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             await _storeService.DeleteStoreAsync(id);
+            CheckForErrorMessage();
             return RedirectToAction(nameof(Index));
         }
 
@@ -94,6 +107,7 @@ namespace MvcProject.Controllers
         public async Task<IActionResult> Restore(int id)
         {
             await _storeService.RestoreStoreAsync(id);
+            CheckForErrorMessage();
             return RedirectToAction(nameof(Deleted));
         }
     }

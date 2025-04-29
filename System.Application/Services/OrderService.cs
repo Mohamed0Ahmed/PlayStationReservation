@@ -22,9 +22,17 @@ namespace System.Application.Services
             _pointSettingService = pointSettingService;
         }
 
+        private async Task<int> CalculatePointsEarned(Order order)
+        {
+            var room = await _roomService.GetRoomByIdAsync(order.RoomId);
+            var pointSettings = await _pointSettingService.GetPointSettingsByStoreAsync(room.StoreId);
+            var pointSetting = pointSettings.OrderByDescending(ps => ps.Amount).FirstOrDefault(ps => ps.Amount <= order.TotalAmount);
+            return pointSetting?.Points ?? 0;
+        }
+
         public async Task<Order> GetOrderByIdAsync(int id)
         {
-            var order = await _unitOfWork.GetRepository<Order, int>().GetByIdAsync(id);
+            var order = await _unitOfWork.GetRepository<Order, int>().GetByIdWithIncludesAsync(id, false, o => o.OrderItems);
             if (order == null)
                 throw new CustomException("Order not found.", 404);
             return order;
@@ -32,8 +40,8 @@ namespace System.Application.Services
 
         public async Task<IEnumerable<Order>> GetOrdersByRoomAsync(int roomId, bool includeDeleted = false)
         {
-            await _roomService.GetRoomByIdAsync(roomId); 
-            return await _unitOfWork.GetRepository<Order, int>().FindAsync(o => o.RoomId == roomId, includeDeleted);
+            var room = await _roomService.GetRoomByIdAsync(roomId);
+            return await _unitOfWork.GetRepository<Order, int>().FindWithIncludesAsync(o => o.RoomId == roomId, includeDeleted, o => o.OrderItems);
         }
 
         public async Task AddOrderAsync(Order order)
@@ -45,8 +53,11 @@ namespace System.Application.Services
             if (order.PointsUsed < 0)
                 throw new CustomException("Points used cannot be negative.", 400);
 
-            await _customerService.GetCustomerByIdAsync(order.CustomerId); 
-            await _roomService.GetRoomByIdAsync(order.RoomId); 
+            var customer = await _customerService.GetCustomerByIdAsync(order.CustomerId);
+            if (order.PointsUsed > customer.Points)
+                throw new CustomException("Customer does not have enough points.", 400);
+
+            await _roomService.GetRoomByIdAsync(order.RoomId);
 
             await _unitOfWork.BeginTransactionAsync();
             try
@@ -54,16 +65,11 @@ namespace System.Application.Services
                 await _unitOfWork.GetRepository<Order, int>().AddAsync(order);
                 await _unitOfWork.SaveChangesAsync();
 
-                // Calculate Points
-                var room = await _roomService.GetRoomByIdAsync(order.RoomId);
-                var pointSettings = await _pointSettingService.GetPointSettingsByStoreAsync(room.StoreId);
-                var pointSetting = pointSettings.OrderByDescending(ps => ps.Amount).FirstOrDefault(ps => ps.Amount <= order.TotalAmount);
-                if (pointSetting != null)
-                {
-                    var customer = await _customerService.GetCustomerByIdAsync(order.CustomerId);
-                    customer.Points += pointSetting.Points;
-                    await _customerService.UpdateCustomerAsync(customer);
-                }
+                // Calculate and add Points
+                var pointsEarned = await CalculatePointsEarned(order);
+                customer.Points += pointsEarned;
+                customer.Points -= order.PointsUsed; // Deduct used points
+                await _customerService.UpdateCustomerAsync(customer);
 
                 await _unitOfWork.CommitTransactionAsync();
             }
@@ -84,19 +90,51 @@ namespace System.Application.Services
             if (order.PointsUsed < 0)
                 throw new CustomException("Points used cannot be negative.", 400);
 
-            await _customerService.GetCustomerByIdAsync(order.CustomerId); 
-            await _roomService.GetRoomByIdAsync(order.RoomId); 
+            var customer = await _customerService.GetCustomerByIdAsync(order.CustomerId);
+            // Revert previously used points to check if the customer has enough points for the new amount
+            var tempPoints = customer.Points + existingOrder.PointsUsed;
+            if (order.PointsUsed > tempPoints)
+                throw new CustomException("Customer does not have enough points after reverting previous points.", 400);
 
-            existingOrder.CustomerId = order.CustomerId;
-            existingOrder.RoomId = order.RoomId;
-            existingOrder.TotalAmount = order.TotalAmount;
-            existingOrder.PaymentMethod = order.PaymentMethod;
-            existingOrder.PointsUsed = order.PointsUsed;
-            existingOrder.Status = order.Status;
-            existingOrder.RejectionReason = order.RejectionReason;
-            existingOrder.OrderDate = order.OrderDate;
-            _unitOfWork.GetRepository<Order, int>().Update(existingOrder);
-            await _unitOfWork.SaveChangesAsync();
+            await _roomService.GetRoomByIdAsync(order.RoomId);
+
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                // Revert previously earned points
+                var previousPointsEarned = await CalculatePointsEarned(existingOrder);
+                customer.Points -= previousPointsEarned;
+
+                // Revert previously used points
+                customer.Points += existingOrder.PointsUsed;
+
+                // Calculate new points earned
+                var newPointsEarned = await CalculatePointsEarned(order);
+                customer.Points += newPointsEarned;
+
+                // Deduct new points used
+                customer.Points -= order.PointsUsed;
+
+                await _customerService.UpdateCustomerAsync(customer);
+
+                existingOrder.CustomerId = order.CustomerId;
+                existingOrder.RoomId = order.RoomId;
+                existingOrder.TotalAmount = order.TotalAmount;
+                existingOrder.PaymentMethod = order.PaymentMethod;
+                existingOrder.PointsUsed = order.PointsUsed;
+                existingOrder.Status = order.Status;
+                existingOrder.RejectionReason = order.RejectionReason;
+                existingOrder.OrderDate = order.OrderDate;
+                _unitOfWork.GetRepository<Order, int>().Update(existingOrder);
+                await _unitOfWork.SaveChangesAsync();
+
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                throw new CustomException("Failed to update order.", 500);
+            }
         }
 
         public async Task DeleteOrderAsync(int id)
@@ -107,10 +145,18 @@ namespace System.Application.Services
             await _unitOfWork.BeginTransactionAsync();
             try
             {
+                // Soft delete all OrderItems
                 foreach (var orderItem in orderItems)
                 {
-                    await _orderItemService.DeleteOrderItemAsync(orderItem.OrderId, orderItem.MenuItemId);
+                    _unitOfWork.GetRepository<OrderItem, int>().Delete(orderItem);
                 }
+
+                // Revert points earned and used by the order
+                var customer = await _customerService.GetCustomerByIdAsync(order.CustomerId);
+                var pointsEarned = await CalculatePointsEarned(order);
+                customer.Points -= pointsEarned; // Remove earned points
+                customer.Points += order.PointsUsed; // Revert used points
+                await _customerService.UpdateCustomerAsync(customer);
 
                 _unitOfWork.GetRepository<Order, int>().Delete(order);
                 await _unitOfWork.SaveChangesAsync();
@@ -131,8 +177,28 @@ namespace System.Application.Services
             if (!order.IsDeleted)
                 throw new CustomException("Order is not deleted.", 400);
 
-            await _unitOfWork.GetRepository<Order, int>().RestoreAsync(id);
-            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                // Restore points when restoring the order
+                var customer = await _customerService.GetCustomerByIdAsync(order.CustomerId);
+                var pointsEarned = await CalculatePointsEarned(order);
+                if (order.PointsUsed > customer.Points)
+                    throw new CustomException("Customer does not have enough points to restore this order.", 400);
+
+                customer.Points += pointsEarned; // Add earned points back
+                customer.Points -= order.PointsUsed; // Deduct used points
+                await _customerService.UpdateCustomerAsync(customer);
+
+                await _unitOfWork.GetRepository<Order, int>().RestoreAsync(id);
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                throw new CustomException("Failed to restore order.", 500);
+            }
         }
     }
 }

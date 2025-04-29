@@ -27,8 +27,7 @@ namespace System.Application.Services
             if (string.IsNullOrWhiteSpace(phoneNumber))
                 throw new CustomException("Phone number is required.", 400);
 
-            var customer = (await _unitOfWork.GetRepository<Customer, int>().FindAsync(c => c.PhoneNumber == phoneNumber))
-                .FirstOrDefault();
+            var customer = (await _unitOfWork.GetRepository<Customer, int>().FindAsync(c => c.PhoneNumber == phoneNumber && !c.IsDeleted)).FirstOrDefault();
             return customer;
         }
 
@@ -73,8 +72,32 @@ namespace System.Application.Services
         public async Task DeleteCustomerAsync(int id)
         {
             var customer = await GetCustomerByIdAsync(id);
-            _unitOfWork.GetRepository<Customer, int>().Delete(customer);
-            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                // Soft delete all related Orders
+                var orders = await _unitOfWork.GetRepository<Order, int>().FindAsync(o => o.CustomerId == id && !o.IsDeleted);
+                foreach (var order in orders)
+                {
+                    _unitOfWork.GetRepository<Order, int>().Delete(order);
+                }
+
+                // Soft delete all related AssistanceRequests
+                var assistanceRequests = await _unitOfWork.GetRepository<AssistanceRequest, int>().FindAsync(ar => ar.CustomerId == id && !ar.IsDeleted);
+                foreach (var assistanceRequest in assistanceRequests)
+                {
+                    _unitOfWork.GetRepository<AssistanceRequest, int>().Delete(assistanceRequest);
+                }
+
+                _unitOfWork.GetRepository<Customer, int>().Delete(customer);
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                throw new CustomException("Failed to delete customer.", 500);
+            }
         }
 
         public async Task RestoreCustomerAsync(int id)

@@ -30,11 +30,19 @@ namespace System.Infrastructure.Unit
 
         public async Task<int> SaveChangesAsync()
         {
+            if (_transaction != null)
+            {
+                throw new InvalidOperationException("Cannot save changes while a transaction is still open. Commit or rollback the transaction first.");
+            }
             return await _context.SaveChangesAsync();
         }
 
         public async Task BeginTransactionAsync()
         {
+            if (_transaction != null)
+            {
+                throw new InvalidOperationException("A transaction is already in progress.");
+            }
             _transaction = await _context.Database.BeginTransactionAsync();
         }
 
@@ -42,18 +50,30 @@ namespace System.Infrastructure.Unit
         {
             if (_transaction == null)
                 throw new InvalidOperationException("No transaction to commit.");
-            await _transaction.CommitAsync();
-            _transaction.Dispose();
-            _transaction = null;
+            try
+            {
+                await _transaction.CommitAsync();
+            }
+            finally
+            {
+                _transaction.Dispose();
+                _transaction = null;
+            }
         }
 
         public async Task RollbackTransactionAsync()
         {
             if (_transaction == null)
                 throw new InvalidOperationException("No transaction to rollback.");
-            await _transaction.RollbackAsync();
-            _transaction.Dispose();
-            _transaction = null;
+            try
+            {
+                await _transaction.RollbackAsync();
+            }
+            finally
+            {
+                _transaction.Dispose();
+                _transaction = null;
+            }
         }
 
         protected virtual void Dispose(bool disposing)
@@ -62,12 +82,19 @@ namespace System.Infrastructure.Unit
             {
                 if (disposing)
                 {
-                    if (_transaction != null)
+                    try
                     {
-                        _transaction.Dispose();
-                        _transaction = null;
+                        if (_transaction != null)
+                        {
+                            _transaction.Dispose();
+                            _transaction = null;
+                        }
+                        _context.Dispose();
                     }
-                    _context.Dispose();
+                    catch (Exception)
+                    {
+                        
+                    }
                 }
                 _disposed = true;
             }

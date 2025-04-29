@@ -19,27 +19,80 @@ namespace System.Infrastructure.Repositories
         public async Task<T> GetByIdAsync(TKey id, bool includeDeleted = false)
         {
             var query = _dbSet.AsQueryable();
-            if (!includeDeleted)
+            if (includeDeleted)
+                query = query.Where(e => e.IsDeleted); 
+            else
+                query = query.Where(e => !e.IsDeleted); 
+
+            return await query.FirstOrDefaultAsync(e => e.Id.Equals(id));
+        }
+
+        public async Task<T> GetByIdWithIncludesAsync(TKey id, bool includeDeleted = false, params Expression<Func<T, object>>[] includes)
+        {
+            var query = _dbSet.AsQueryable();
+            foreach (var include in includes)
+            {
+                query = query.Include(include);
+            }
+            if (includeDeleted)
+                query = query.Where(e => e.IsDeleted); 
+            else
                 query = query.Where(e => !e.IsDeleted);
+
             return await query.FirstOrDefaultAsync(e => e.Id.Equals(id));
         }
 
         public async Task<IEnumerable<T>> GetAllAsync(bool includeDeleted = false)
         {
             var query = _dbSet.AsQueryable();
-            if (!includeDeleted)
-                query = query.Where(e => !e.IsDeleted);
 
             if (includeDeleted)
-                query = query.Where(e => e.IsDeleted);
+                query = query.Where(e => e.IsDeleted); 
+            else
+                query = query.Where(e => !e.IsDeleted); 
+
+            return await query.ToListAsync();
+        }
+
+        public async Task<IEnumerable<T>> GetAllWithIncludesAsync(bool includeDeleted = false, params Expression<Func<T, object>>[] includes)
+        {
+            var query = _dbSet.AsQueryable();
+            foreach (var include in includes)
+            {
+                query = query.Include(include);
+            }
+            if (includeDeleted)
+                query = query.Where(e => e.IsDeleted); 
+            else
+                query = query.Where(e => !e.IsDeleted);
+
             return await query.ToListAsync();
         }
 
         public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, bool includeDeleted = false)
         {
             var query = _dbSet.AsQueryable();
-            if (!includeDeleted)
-                query = query.Where(e => !e.IsDeleted);
+            if (includeDeleted)
+                query = query.Where(e => e.IsDeleted);
+            else
+                query = query.Where(e => !e.IsDeleted); 
+
+            return await query.Where(predicate).ToListAsync();
+        }
+
+        public async Task<IEnumerable<T>> FindWithIncludesAsync(Expression<Func<T, bool>> predicate, bool includeDeleted = false, params Expression<Func<T, object>>[] includes)
+        {
+            var query = _dbSet.AsQueryable();
+            foreach (var include in includes)
+            {
+                query = query.Include(include);
+            }
+
+            if (includeDeleted)
+                query = query.Where(e => e.IsDeleted); 
+            else
+                query = query.Where(e => !e.IsDeleted); 
+
             return await query.Where(predicate).ToListAsync();
         }
 

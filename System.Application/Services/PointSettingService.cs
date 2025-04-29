@@ -26,7 +26,7 @@ namespace System.Application.Services
 
         public async Task<IEnumerable<PointSetting>> GetPointSettingsByStoreAsync(int storeId, bool includeDeleted = false)
         {
-            await _storeService.GetStoreByIdAsync(storeId); 
+            var store = await _storeService.GetStoreByIdAsync(storeId);
             return await _unitOfWork.GetRepository<PointSetting, int>().FindAsync(ps => ps.StoreId == storeId, includeDeleted);
         }
 
@@ -37,7 +37,12 @@ namespace System.Application.Services
             if (pointSetting.Points < 0)
                 throw new CustomException("Points cannot be negative.", 400);
 
-            await _storeService.GetStoreByIdAsync(pointSetting.StoreId); 
+            // Check for duplicate Amount and StoreId
+            var existingSetting = (await _unitOfWork.GetRepository<PointSetting, int>().FindAsync(ps => ps.Amount == pointSetting.Amount && ps.StoreId == pointSetting.StoreId && !ps.IsDeleted)).FirstOrDefault();
+            if (existingSetting != null)
+                throw new CustomException($"A point setting with the amount '{pointSetting.Amount}' already exists for this store.", 400);
+
+            await _storeService.GetStoreByIdAsync(pointSetting.StoreId);
             await _unitOfWork.GetRepository<PointSetting, int>().AddAsync(pointSetting);
             await _unitOfWork.SaveChangesAsync();
         }
@@ -50,7 +55,12 @@ namespace System.Application.Services
             if (pointSetting.Points < 0)
                 throw new CustomException("Points cannot be negative.", 400);
 
-            await _storeService.GetStoreByIdAsync(pointSetting.StoreId); 
+            // Check for duplicate Amount and StoreId (excluding the current setting)
+            var duplicateSetting = (await _unitOfWork.GetRepository<PointSetting, int>().FindAsync(ps => ps.Amount == pointSetting.Amount && ps.StoreId == pointSetting.StoreId && ps.Id != pointSetting.Id && !ps.IsDeleted)).FirstOrDefault();
+            if (duplicateSetting != null)
+                throw new CustomException($"Another point setting with the amount '{pointSetting.Amount}' already exists for this store.", 400);
+
+            await _storeService.GetStoreByIdAsync(pointSetting.StoreId);
             existingPointSetting.StoreId = pointSetting.StoreId;
             existingPointSetting.Amount = pointSetting.Amount;
             existingPointSetting.Points = pointSetting.Points;

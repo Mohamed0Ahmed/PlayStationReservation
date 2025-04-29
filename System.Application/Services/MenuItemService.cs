@@ -26,7 +26,7 @@ namespace System.Application.Services
 
         public async Task<IEnumerable<MenuItem>> GetMenuItemsByCategoryAsync(int categoryId, bool includeDeleted = false)
         {
-            await _menuCategoryService.GetMenuCategoryByIdAsync(categoryId); 
+            var category = await _menuCategoryService.GetMenuCategoryByIdAsync(categoryId);
             return await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(mi => mi.MenuCategoryId == categoryId, includeDeleted);
         }
 
@@ -39,7 +39,12 @@ namespace System.Application.Services
             if (menuItem.PointsRequired < 0)
                 throw new CustomException("Points required cannot be negative.", 400);
 
-            await _menuCategoryService.GetMenuCategoryByIdAsync(menuItem.MenuCategoryId); 
+            // Check for duplicate Name and MenuCategoryId
+            var existingItem = (await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(mi => mi.Name == menuItem.Name && mi.MenuCategoryId == menuItem.MenuCategoryId && !mi.IsDeleted)).FirstOrDefault();
+            if (existingItem != null)
+                throw new CustomException($"A menu item with the name '{menuItem.Name}' already exists in this category.", 400);
+
+            await _menuCategoryService.GetMenuCategoryByIdAsync(menuItem.MenuCategoryId);
             await _unitOfWork.GetRepository<MenuItem, int>().AddAsync(menuItem);
             await _unitOfWork.SaveChangesAsync();
         }
@@ -54,7 +59,12 @@ namespace System.Application.Services
             if (menuItem.PointsRequired < 0)
                 throw new CustomException("Points required cannot be negative.", 400);
 
-            await _menuCategoryService.GetMenuCategoryByIdAsync(menuItem.MenuCategoryId); 
+            // Check for duplicate Name and MenuCategoryId (excluding the current item)
+            var duplicateItem = (await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(mi => mi.Name == menuItem.Name && mi.MenuCategoryId == menuItem.MenuCategoryId && mi.Id != menuItem.Id && !mi.IsDeleted)).FirstOrDefault();
+            if (duplicateItem != null)
+                throw new CustomException($"Another menu item with the name '{menuItem.Name}' already exists in this category.", 400);
+
+            await _menuCategoryService.GetMenuCategoryByIdAsync(menuItem.MenuCategoryId);
             existingMenuItem.Name = menuItem.Name;
             existingMenuItem.Price = menuItem.Price;
             existingMenuItem.PointsRequired = menuItem.PointsRequired;

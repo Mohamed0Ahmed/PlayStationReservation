@@ -9,12 +9,20 @@ namespace MvcProject.Controllers
     {
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly UserManager<IdentityUser> _userManager;
+        private void CheckForErrorMessage()
+        {
+            if (HttpContext.Items.ContainsKey("ErrorMessage"))
+            {
+                TempData["ErrorMessage"] = HttpContext.Items["ErrorMessage"]?.ToString();
+            }
+        }
 
         public AccountController(SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager)
         {
             _signInManager = signInManager;
             _userManager = userManager;
         }
+
 
         public IActionResult Login(string returnUrl = null!)
         {
@@ -42,7 +50,7 @@ namespace MvcProject.Controllers
                     return View();
                 }
             }
-
+            CheckForErrorMessage();
             return View();
         }
 

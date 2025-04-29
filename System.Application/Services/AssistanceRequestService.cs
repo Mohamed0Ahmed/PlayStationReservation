@@ -28,7 +28,7 @@ namespace System.Application.Services
 
         public async Task<IEnumerable<AssistanceRequest>> GetAssistanceRequestsByRoomAsync(int roomId, bool includeDeleted = false)
         {
-            await _roomService.GetRoomByIdAsync(roomId); 
+            var room = await _roomService.GetRoomByIdAsync(roomId);
             return await _unitOfWork.GetRepository<AssistanceRequest, int>().FindAsync(ar => ar.RoomId == roomId, includeDeleted);
         }
 
@@ -37,8 +37,19 @@ namespace System.Application.Services
             if (string.IsNullOrWhiteSpace(assistanceRequest.RequestType))
                 throw new CustomException("Request type is required.", 400);
 
-            await _customerService.GetCustomerByIdAsync(assistanceRequest.CustomerId); 
-            await _roomService.GetRoomByIdAsync(assistanceRequest.RoomId); 
+            await _customerService.GetCustomerByIdAsync(assistanceRequest.CustomerId);
+            await _roomService.GetRoomByIdAsync(assistanceRequest.RoomId);
+
+            // Check for duplicate request (same RequestType, RoomId, and same day)
+            var today = DateTime.UtcNow.Date;
+            var existingRequest = (await _unitOfWork.GetRepository<AssistanceRequest, int>().FindAsync(ar =>
+                ar.RequestType == assistanceRequest.RequestType &&
+                ar.RoomId == assistanceRequest.RoomId &&
+                ar.RequestDate.Date == today &&
+                !ar.IsDeleted)).FirstOrDefault();
+            if (existingRequest != null)
+                throw new CustomException($"An assistance request of type '{assistanceRequest.RequestType}' already exists for this room today.", 400);
+
             await _unitOfWork.GetRepository<AssistanceRequest, int>().AddAsync(assistanceRequest);
             await _unitOfWork.SaveChangesAsync();
         }
@@ -49,8 +60,20 @@ namespace System.Application.Services
             if (string.IsNullOrWhiteSpace(assistanceRequest.RequestType))
                 throw new CustomException("Request type is required.", 400);
 
-            await _customerService.GetCustomerByIdAsync(assistanceRequest.CustomerId); 
-            await _roomService.GetRoomByIdAsync(assistanceRequest.RoomId); 
+            await _customerService.GetCustomerByIdAsync(assistanceRequest.CustomerId);
+            await _roomService.GetRoomByIdAsync(assistanceRequest.RoomId);
+
+            // Check for duplicate request (excluding the current request)
+            var today = DateTime.UtcNow.Date;
+            var duplicateRequest = (await _unitOfWork.GetRepository<AssistanceRequest, int>().FindAsync(ar =>
+                ar.RequestType == assistanceRequest.RequestType &&
+                ar.RoomId == assistanceRequest.RoomId &&
+                ar.RequestDate.Date == today &&
+                ar.Id != assistanceRequest.Id &&
+                !ar.IsDeleted)).FirstOrDefault();
+            if (duplicateRequest != null)
+                throw new CustomException($"Another assistance request of type '{assistanceRequest.RequestType}' already exists for this room today.", 400);
+
             existingAssistanceRequest.CustomerId = assistanceRequest.CustomerId;
             existingAssistanceRequest.RoomId = assistanceRequest.RoomId;
             existingAssistanceRequest.RequestType = assistanceRequest.RequestType;

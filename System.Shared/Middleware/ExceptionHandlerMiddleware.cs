@@ -1,7 +1,5 @@
-﻿using System.Net;
-using System.Text.Json;
+﻿using Microsoft.AspNetCore.Http;
 using System.Shared.Exceptions;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Builder;
 
 namespace System.Shared.Middleware
@@ -23,21 +21,24 @@ namespace System.Shared.Middleware
             }
             catch (CustomException ex)
             {
-                await HandleExceptionAsync(context, ex.StatusCode, ex.Message);
+                await HandleCustomExceptionAsync(context, ex);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                await HandleExceptionAsync(context, (int)HttpStatusCode.InternalServerError, "An unexpected error occurred.");
+                await HandleExceptionAsync(context, ex);
             }
         }
 
-        private static Task HandleExceptionAsync(HttpContext context, int statusCode, string message)
+        private Task HandleCustomExceptionAsync(HttpContext context, CustomException exception)
         {
-            context.Response.ContentType = "application/json";
-            context.Response.StatusCode = statusCode;
+            context.Items["ErrorMessage"] = exception.Message;
+            return _next(context);
+        }
 
-            var result = JsonSerializer.Serialize(new { error = message });
-            return context.Response.WriteAsync(result);
+        private Task HandleExceptionAsync(HttpContext context, Exception exception)
+        {
+            context.Items["ErrorMessage"] = "An unexpected error occurred: " + exception.Message;
+            return _next(context); 
         }
     }
 
