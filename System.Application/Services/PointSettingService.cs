@@ -1,6 +1,6 @@
-﻿using System.Infrastructure.Repositories;
-using System.Domain.Models;
+﻿using System.Domain.Models;
 using System.Application.Abstraction;
+using System.Shared.Exceptions;
 using System.Infrastructure.Unit;
 
 namespace System.Application.Services
@@ -8,27 +8,36 @@ namespace System.Application.Services
     public class PointSettingService : IPointSettingService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IStoreService _storeService;
 
-        public PointSettingService(IUnitOfWork unitOfWork)
+        public PointSettingService(IUnitOfWork unitOfWork, IStoreService storeService)
         {
             _unitOfWork = unitOfWork;
+            _storeService = storeService;
         }
 
         public async Task<PointSetting> GetPointSettingByIdAsync(int id)
         {
             var pointSetting = await _unitOfWork.GetRepository<PointSetting, int>().GetByIdAsync(id);
             if (pointSetting == null)
-                throw new Exception("PointSetting not found.");
+                throw new CustomException("PointSetting not found.", 404);
             return pointSetting;
         }
 
         public async Task<IEnumerable<PointSetting>> GetPointSettingsByStoreAsync(int storeId, bool includeDeleted = false)
         {
+            await _storeService.GetStoreByIdAsync(storeId); 
             return await _unitOfWork.GetRepository<PointSetting, int>().FindAsync(ps => ps.StoreId == storeId, includeDeleted);
         }
 
         public async Task AddPointSettingAsync(PointSetting pointSetting)
         {
+            if (pointSetting.Amount < 0)
+                throw new CustomException("Amount cannot be negative.", 400);
+            if (pointSetting.Points < 0)
+                throw new CustomException("Points cannot be negative.", 400);
+
+            await _storeService.GetStoreByIdAsync(pointSetting.StoreId); 
             await _unitOfWork.GetRepository<PointSetting, int>().AddAsync(pointSetting);
             await _unitOfWork.SaveChangesAsync();
         }
@@ -36,6 +45,12 @@ namespace System.Application.Services
         public async Task UpdatePointSettingAsync(PointSetting pointSetting)
         {
             var existingPointSetting = await GetPointSettingByIdAsync(pointSetting.Id);
+            if (pointSetting.Amount < 0)
+                throw new CustomException("Amount cannot be negative.", 400);
+            if (pointSetting.Points < 0)
+                throw new CustomException("Points cannot be negative.", 400);
+
+            await _storeService.GetStoreByIdAsync(pointSetting.StoreId); 
             existingPointSetting.StoreId = pointSetting.StoreId;
             existingPointSetting.Amount = pointSetting.Amount;
             existingPointSetting.Points = pointSetting.Points;
@@ -52,6 +67,12 @@ namespace System.Application.Services
 
         public async Task RestorePointSettingAsync(int id)
         {
+            var pointSetting = await _unitOfWork.GetRepository<PointSetting, int>().GetByIdAsync(id, true);
+            if (pointSetting == null)
+                throw new CustomException("PointSetting not found.", 404);
+            if (!pointSetting.IsDeleted)
+                throw new CustomException("PointSetting is not deleted.", 400);
+
             await _unitOfWork.GetRepository<PointSetting, int>().RestoreAsync(id);
             await _unitOfWork.SaveChangesAsync();
         }

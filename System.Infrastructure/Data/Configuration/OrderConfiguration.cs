@@ -17,7 +17,7 @@ namespace System.Infrastructure.Data.Configuration
 
             builder.Property(o => o.Status)
                 .IsRequired()
-                .HasMaxLength(50);
+                .HasConversion<string>();
 
             builder.Property(o => o.RejectionReason)
                 .HasMaxLength(500);
@@ -25,12 +25,12 @@ namespace System.Infrastructure.Data.Configuration
             builder.HasOne(o => o.Customer)
                 .WithMany(c => c.Orders)
                 .HasForeignKey(o => o.CustomerId)
-                .OnDelete(DeleteBehavior.NoAction); 
+                .OnDelete(DeleteBehavior.NoAction);
 
             builder.HasOne(o => o.Room)
                 .WithMany(r => r.Orders)
                 .HasForeignKey(o => o.RoomId)
-                .OnDelete(DeleteBehavior.NoAction); 
+                .OnDelete(DeleteBehavior.NoAction);
         }
     }
 }

@@ -4,11 +4,11 @@ namespace System.Domain.Models
 {
     public class Room : BaseEntity<int>
     {
-        public string Username { get; set; }
-        public string Password { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
         public int StoreId { get; set; }
         public Store Store { get; set; }
-        public List<Order> Orders { get; set; } = new List<Order>();
-        public List<AssistanceRequest> AssistanceRequests { get; set; } = new List<AssistanceRequest>();
+        public List<Order> Orders { get; set; } = [];
+        public List<AssistanceRequest> AssistanceRequests { get; set; } = [];
     }
 }

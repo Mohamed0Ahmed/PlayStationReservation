@@ -4,7 +4,7 @@ namespace System.Application.Abstraction
 {
     public interface IStoreService
     {
-        Task<Store> GetStoreByIdAsync(int id);
+        Task<Store> GetStoreByIdAsync(int id , bool includeDeleted = false);
         Task<IEnumerable<Store>> GetAllStoresAsync(bool includeDeleted = false);
         Task AddStoreAsync(Store store);
         Task UpdateStoreAsync(Store store);

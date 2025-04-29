@@ -29,6 +29,9 @@ namespace System.Infrastructure.Repositories
             var query = _dbSet.AsQueryable();
             if (!includeDeleted)
                 query = query.Where(e => !e.IsDeleted);
+
+            if (includeDeleted)
+                query = query.Where(e => e.IsDeleted);
             return await query.ToListAsync();
         }
 
