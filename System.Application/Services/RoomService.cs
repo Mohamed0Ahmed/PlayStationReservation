@@ -24,6 +24,14 @@ namespace System.Application.Services
             return room;
         }
 
+        public async Task<Room> GetRoomByNameAsync(string userName, string password, int id, bool includeDeleted = false)
+        {
+            var room = (await _unitOfWork.GetRepository<Room, int>().FindAsync(r => r.Username == userName && r.Password == password && r.StoreId == id, includeDeleted)).FirstOrDefault();
+            if (room == null)
+                throw new CustomException("Room not found.", 404);
+            return room;
+        }
+
         public async Task<IEnumerable<Room>> GetAllRoomsAsync(int storeId, bool includeDeleted = false)
         {
             var store = await _storeService.GetStoreByIdAsync(storeId);

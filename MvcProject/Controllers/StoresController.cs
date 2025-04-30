@@ -46,7 +46,7 @@ namespace MvcProject.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while retrieving active stores.");
-                TempData["ErrorMessage"] = "An unexpected error occurred while retrieving stores. Please try again later.";
+                TempData["ErrorMessage"] = ex.Message;
                 return View(new List<StoreViewModel>());
             }
         }
@@ -79,7 +79,7 @@ namespace MvcProject.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while retrieving rooms for store {StoreId}.", storeId);
-                TempData["ErrorMessage"] = "An unexpected error occurred while retrieving rooms. Please try again later.";
+                TempData["ErrorMessage"] = ex.Message;
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -103,7 +103,7 @@ namespace MvcProject.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while retrieving deleted stores.");
-                TempData["ErrorMessage"] = "An unexpected error occurred while retrieving deleted stores. Please try again later.";
+                TempData["ErrorMessage"] = ex.Message;
                 return View(new List<StoreViewModel>());
             }
         }
@@ -137,7 +137,7 @@ namespace MvcProject.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while creating store {StoreName}.", model.Name);
-                TempData["ErrorMessage"] = "An unexpected error occurred while creating the store. Please try again later.";
+                TempData["ErrorMessage"] = ex.Message;
                 CheckForErrorMessage();
                 return View(model);
             }
@@ -159,7 +159,7 @@ namespace MvcProject.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while retrieving store {StoreId} for editing.", id);
-                TempData["ErrorMessage"] = "An unexpected error occurred while retrieving the store. Please try again later.";
+                TempData["ErrorMessage"] = ex.Message;
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -194,7 +194,7 @@ namespace MvcProject.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while updating store {StoreId}.", id);
-                TempData["ErrorMessage"] = "An unexpected error occurred while updating the store. Please try again later.";
+                TempData["ErrorMessage"] = ex.Message;
                 CheckForErrorMessage();
                 return View(model);
             }
@@ -214,7 +214,7 @@ namespace MvcProject.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while deleting store {StoreId}.", id);
-                TempData["ErrorMessage"] = "An unexpected error occurred while deleting the store. Please try again later.";
+                TempData["ErrorMessage"] = ex.Message;
                 CheckForErrorMessage();
                 return RedirectToAction(nameof(Index));
             }
@@ -241,7 +241,7 @@ namespace MvcProject.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while deleting room {RoomId} from store {StoreId}.", roomId, storeId);
-                TempData["ErrorMessage"] = "An unexpected error occurred while deleting the room. Please try again later.";
+                TempData["ErrorMessage"] = ex.Message;
                 CheckForErrorMessage();
                 return RedirectToAction(nameof(ViewRooms), new { storeId });
             }
@@ -274,7 +274,7 @@ namespace MvcProject.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while restoring room {RoomId} for store {StoreId}.", roomId, storeId);
-                TempData["ErrorMessage"] = "An unexpected error occurred while restoring the room. Please try again later.";
+                TempData["ErrorMessage"] = ex.Message;
                 CheckForErrorMessage();
                 return RedirectToAction(nameof(ViewRooms), new { storeId });
             }
@@ -294,7 +294,7 @@ namespace MvcProject.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while restoring store {StoreId}.", id);
-                TempData["ErrorMessage"] = "An unexpected error occurred while restoring the store. Please try again later.";
+                TempData["ErrorMessage"] = ex.Message;
                 CheckForErrorMessage();
                 return RedirectToAction(nameof(Deleted));
             }

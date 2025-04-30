@@ -21,6 +21,13 @@ namespace System.Application.Services
                 throw new CustomException("Store not found.", 404);
             return store;
         }
+        public async Task<Store> GetStoreByNameAsync(string name, bool includeDeleted = false)
+        {
+            var store = (await _unitOfWork.GetRepository<Store, int>().FindAsync(s => s.Name == name, includeDeleted)).FirstOrDefault();
+            if (store == null)
+                throw new CustomException("Store not found.", 404);
+            return store;
+        }
 
         public async Task<IEnumerable<Store>> GetAllStoresAsync(bool includeDeleted = false)
         {

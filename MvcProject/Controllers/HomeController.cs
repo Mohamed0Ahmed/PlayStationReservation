@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics;
 
 namespace MvcProject.Controllers
 {
@@ -9,12 +8,5 @@ namespace MvcProject.Controllers
         {
             return View();
         }
-
-        public IActionResult Privacy()
-        {
-            return View();
-        }
-
-    
     }
 }

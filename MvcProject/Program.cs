@@ -8,11 +8,12 @@ namespace MvcProject
 {
     public class Program
     {
-        public static async Task Main(string[] args) 
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
             #region services
+
             builder.Services.AddControllersWithViews();
             builder.Services.AddInfrastructure(builder.Configuration);
             builder.Services.AddApplication();
@@ -20,6 +21,16 @@ namespace MvcProject
             builder.Services.AddIdentity<IdentityUser, IdentityRole>()
                             .AddEntityFrameworkStores<AppDbContext>()
                             .AddDefaultTokenProviders();
+
+            // Add session support
+            builder.Services.AddDistributedMemoryCache();
+            builder.Services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromHours(1);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
+
             #endregion
 
             var app = builder.Build();
@@ -37,6 +48,7 @@ namespace MvcProject
             app.UseExceptionHandlerMiddleware();
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseSession(); 
 
             app.MapControllerRoute(
                 name: "default",
@@ -51,10 +63,10 @@ namespace MvcProject
                 await SeedAdminUser(userManager, roleManager);
             }
 
-            await app.RunAsync(); 
+            await app.RunAsync();
         }
 
-        async static Task  SeedAdminUser(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager)
+        async static Task SeedAdminUser(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             string adminEmail = "admin@admin.com";
             string adminPassword = "Admin@123";

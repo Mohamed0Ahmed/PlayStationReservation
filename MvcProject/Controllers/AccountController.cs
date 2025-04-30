@@ -70,7 +70,7 @@ namespace MvcProject.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while logging in user {Email}.", model.Email);
-                ModelState.AddModelError(string.Empty, "An unexpected error occurred. Please try again later.");
+                ModelState.AddModelError(string.Empty, ex.Message);
             }
 
             CheckForErrorMessage();
