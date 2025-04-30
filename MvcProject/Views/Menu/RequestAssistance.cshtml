@@ -1,0 +1,45 @@
+﻿@model AssistanceRequestViewModel
+
+@{
+    ViewData["Title"] = "Request Assistance";
+    Layout = null; // No layout for iPad
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Request Assistance - iPad</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="text-center">Request Assistance</h2>
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">
+                @TempData["ErrorMessage"]
+            </div>
+        }
+
+        <form asp-action="RequestAssistance" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="RequestType"></label>
+                <input asp-for="RequestType" class="form-control" placeholder="e.g., Need help with controller" />
+                <span asp-validation-for="RequestType" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Submit Request</button>
+            <a asp-action="Index" class="btn btn-secondary btn-block">Cancel</a>
+        </form>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+</body>
+</html>

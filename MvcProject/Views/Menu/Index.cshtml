@@ -1,0 +1,82 @@
+﻿@model MenuViewModel
+
+@{
+    ViewData["Title"] = "Menu";
+    Layout = null; // No layout for iPad
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Menu - iPad</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="text-center">Menu</h2>
+
+        <div class="mb-3">
+            <p><strong>Your Points:</strong> @Model.CustomerPoints</p>
+            <a asp-controller="CustomerLogin" asp-action="Logout" class="btn btn-secondary">Logout</a>
+            <a asp-action="RequestAssistance" class="btn btn-info">Request Assistance</a>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">
+                @TempData["ErrorMessage"]
+            </div>
+        }
+
+        @foreach (var category in Model.Categories)
+        {
+            <h3>@category.Name</h3>
+            <div class="row">
+                @foreach (var item in category.MenuItems.Where(i => !i.IsDeleted))
+                {
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">@item.Name</h5>
+                                <p class="card-text">Price: @item.Price EGP</p>
+                                <p class="card-text">Points Required: @item.PointsRequired</p>
+                                <form asp-action="PlaceOrder" method="post" class="d-inline">
+                                    <input type="hidden" name="menuItemId" value="@item.Id" />
+                                    <input type="hidden" name="usePoints" value="false" />
+                                    <button type="submit" class="btn btn-primary">Order (Cash)</button>
+                                </form>
+                                @if (Model.CustomerPoints >= item.PointsRequired)
+                                {
+                                    <form asp-action="PlaceOrder" method="post" class="d-inline">
+                                        <input type="hidden" name="menuItemId" value="@item.Id" />
+                                        <input type="hidden" name="usePoints" value="true" />
+                                        <button type="submit" class="btn btn-success">Order (Points)</button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (!Model.Categories.Any())
+        {
+            <p>No menu items available.</p>
+        }
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+</body>
+</html>

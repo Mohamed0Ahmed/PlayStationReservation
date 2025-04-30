@@ -15,7 +15,12 @@ namespace System.Infrastructure.Data.Configuration
             builder.Property(c => c.Points)
                 .HasDefaultValue(0);
 
-            builder.HasIndex(c => c.PhoneNumber)
+            builder.HasOne(c => c.Store)
+                .WithMany(s => s.Customers)
+                .HasForeignKey(c => c.StoreId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.HasIndex(c => new { c.PhoneNumber, c.StoreId })
                 .IsUnique();
         }
     }

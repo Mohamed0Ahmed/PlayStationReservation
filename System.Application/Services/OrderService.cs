@@ -1,7 +1,9 @@
-﻿using System.Domain.Models;
+﻿using Microsoft.AspNetCore.SignalR;
 using System.Application.Abstraction;
+using System.Domain.Models;
 using System.Shared.Exceptions;
 using System.Infrastructure.Unit;
+using System.Shared;
 
 namespace System.Application.Services
 {
@@ -10,16 +12,21 @@ namespace System.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICustomerService _customerService;
         private readonly IRoomService _roomService;
-        private readonly IOrderItemService _orderItemService;
         private readonly IPointSettingService _pointSettingService;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public OrderService(IUnitOfWork unitOfWork, ICustomerService customerService, IRoomService roomService, IOrderItemService orderItemService, IPointSettingService pointSettingService)
+        public OrderService(
+            IUnitOfWork unitOfWork,
+            ICustomerService customerService,
+            IRoomService roomService,
+            IPointSettingService pointSettingService,
+            IHubContext<NotificationHub> hubContext)
         {
             _unitOfWork = unitOfWork;
             _customerService = customerService;
             _roomService = roomService;
-            _orderItemService = orderItemService;
             _pointSettingService = pointSettingService;
+            _hubContext = hubContext;
         }
 
         private async Task<int> CalculatePointsEarned(Order order)
@@ -41,7 +48,7 @@ namespace System.Application.Services
         public async Task<IEnumerable<Order>> GetOrdersByRoomAsync(int roomId, bool includeDeleted = false)
         {
             var room = await _roomService.GetRoomByIdAsync(roomId);
-            return await _unitOfWork.GetRepository<Order, int>().FindWithIncludesAsync(o => o.RoomId == roomId, includeDeleted, o => o.OrderItems);
+            return await _unitOfWork.GetRepository<Order, int>().FindWithIncludesAsync(o => o.RoomId == roomId, includeDeleted, o => o.OrderItems, o => o.Customer, o => o.Room);
         }
 
         public async Task AddOrderAsync(Order order)
@@ -71,6 +78,10 @@ namespace System.Application.Services
                 await _customerService.UpdateCustomerAsync(customer);
 
                 await _unitOfWork.CommitTransactionAsync();
+
+                // Send notification to the store owner
+                await _hubContext.Clients.Group($"Store_{customer.StoreId}")
+                    .SendAsync("ReceiveOrderNotification", $"New order placed (ID: {order.Id})");
             }
             catch
             {
@@ -117,6 +128,8 @@ namespace System.Application.Services
                 existingOrder.Status = order.Status;
                 existingOrder.RejectionReason = order.RejectionReason;
                 existingOrder.OrderDate = order.OrderDate;
+                existingOrder.LastModifiedOn = DateTime.UtcNow;
+
                 _unitOfWork.GetRepository<Order, int>().Update(existingOrder);
                 await _unitOfWork.SaveChangesAsync();
 

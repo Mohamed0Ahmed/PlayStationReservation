@@ -22,13 +22,13 @@ namespace System.Application.Services
             return customer;
         }
 
-        public async Task<Customer> GetCustomerByPhoneAsync(string phoneNumber)
+        public async Task<Customer> GetCustomerByPhoneAsync(string phoneNumber , int storeId)
         {
             if (string.IsNullOrWhiteSpace(phoneNumber))
                 throw new CustomException("Phone number is required.", 400);
 
-            var customer = (await _unitOfWork.GetRepository<Customer, int>().FindAsync(c => c.PhoneNumber == phoneNumber && !c.IsDeleted)).FirstOrDefault();
-            return customer;
+            var customer = (await _unitOfWork.GetRepository<Customer, int>().FindAsync(c => c.PhoneNumber == phoneNumber && !c.IsDeleted)).Where(c=>c.StoreId == storeId).FirstOrDefault();
+            return customer!;
         }
 
         public async Task<IEnumerable<Customer>> GetAllCustomersAsync(bool includeDeleted = false)
@@ -43,7 +43,7 @@ namespace System.Application.Services
             if (customer.Points < 0)
                 throw new CustomException("Points cannot be negative.", 400);
 
-            var existingCustomer = await GetCustomerByPhoneAsync(customer.PhoneNumber);
+            var existingCustomer = await GetCustomerByPhoneAsync(customer.PhoneNumber , customer.StoreId);
             if (existingCustomer != null)
                 throw new CustomException("Customer with this phone number already exists.", 400);
 
@@ -59,7 +59,7 @@ namespace System.Application.Services
             if (customer.Points < 0)
                 throw new CustomException("Points cannot be negative.", 400);
 
-            var duplicateCustomer = await GetCustomerByPhoneAsync(customer.PhoneNumber);
+            var duplicateCustomer = await GetCustomerByPhoneAsync(customer.PhoneNumber , customer.StoreId);
             if (duplicateCustomer != null && duplicateCustomer.Id != customer.Id)
                 throw new CustomException("Another customer with this phone number already exists.", 400);
 

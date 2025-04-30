@@ -53,14 +53,18 @@ namespace MvcProject.Controllers
 
             try
             {
-                // Check if customer exists
-                var customer = await _customerService.GetCustomerByPhoneAsync(model.PhoneNumber);
+                // Get StoreId from session
+                int storeId = HttpContext.Session.GetInt32("StoreId") ?? 0;
+
+                // Check if customer exists for this phone number and store
+                var customer = await _customerService.GetCustomerByPhoneAsync(model.PhoneNumber , storeId);
                 if (customer == null)
                 {
-                    // Create new customer if not exists
+                    // Create new customer if not exists for this store
                     customer = new Customer
                     {
                         PhoneNumber = model.PhoneNumber,
+                        StoreId = storeId,
                         Points = 0
                     };
                     await _customerService.AddCustomerAsync(customer);
@@ -73,7 +77,7 @@ namespace MvcProject.Controllers
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty,ex.Message);
+                ModelState.AddModelError(string.Empty, ex.Message);
                 CheckForErrorMessage();
                 return View(model);
             }

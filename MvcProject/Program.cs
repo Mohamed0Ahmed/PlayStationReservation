@@ -3,6 +3,7 @@ using System.Infrastructure;
 using System.Application;
 using System.Shared.Middleware;
 using System.Infrastructure.Data;
+using System.Shared;
 
 namespace MvcProject
 {
@@ -13,7 +14,6 @@ namespace MvcProject
             var builder = WebApplication.CreateBuilder(args);
 
             #region services
-
             builder.Services.AddControllersWithViews();
             builder.Services.AddInfrastructure(builder.Configuration);
             builder.Services.AddApplication();
@@ -31,6 +31,8 @@ namespace MvcProject
                 options.Cookie.IsEssential = true;
             });
 
+            // Add SignalR
+            builder.Services.AddSignalR();
             #endregion
 
             var app = builder.Build();
@@ -48,11 +50,14 @@ namespace MvcProject
             app.UseExceptionHandlerMiddleware();
             app.UseAuthentication();
             app.UseAuthorization();
-            app.UseSession(); 
+            app.UseSession();
 
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+
+            // Add SignalR hub endpoint
+            app.MapHub<NotificationHub>("/notificationHub");
             #endregion
 
             // Seed an admin user
