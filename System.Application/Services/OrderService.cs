@@ -13,6 +13,7 @@ namespace System.Application.Services
         private readonly IRepository<OrderItem, int> _orderItemRepository;
         private readonly IRepository<Customer, int> _customerRepository;
         private readonly IRepository<PointSetting, int> _pointSettingRepository;
+        private readonly IRepository<Room, int> _roomRepository;
         private readonly INotificationService _notificationService;
 
         public OrderService(
@@ -20,28 +21,45 @@ namespace System.Application.Services
             IRepository<OrderItem, int> orderItemRepository,
             IRepository<Customer, int> customerRepository,
             IRepository<PointSetting, int> pointSettingRepository,
+            IRepository<Room, int> roomRepository,
             INotificationService notificationService)
         {
             _orderRepository = orderRepository;
             _orderItemRepository = orderItemRepository;
             _customerRepository = customerRepository;
             _pointSettingRepository = pointSettingRepository;
+            _roomRepository = roomRepository;
             _notificationService = notificationService;
         }
 
-        public async Task<ApiResponse<Order>> CreateOrderAsync(int customerId, int roomId, List<(int menuItemId, int quantity)> items)
+        public async Task<ApiResponse<Order>> CreateOrderAsync(string phoneNumber, int roomId, List<(int menuItemId, int quantity)> items)
         {
-            var customer = await _customerRepository.GetByIdAsync(customerId);
+            if (string.IsNullOrEmpty(phoneNumber))
+            {
+                return new ApiResponse<Order>("رقم التليفون مطلوب", 400);
+            }
+
+            var room = await _roomRepository.GetByIdAsync(roomId);
+            if (room == null)
+            {
+                return new ApiResponse<Order>("الغرفة غير موجودة", 404);
+            }
+
+            var customer = await _customerRepository.GetByIdWithIncludesAsync(
+                id: 0,
+                include: q => q.Where(c => c.PhoneNumber == phoneNumber && c.StoreId == room.StoreId),
+                includeDeleted: false);
+
             if (customer == null)
             {
-                return new ApiResponse<Order>("الزبون غير موجود", 404);
+                return new ApiResponse<Order>("سجل برقم تليفونك الأول", 400);
             }
 
             var order = new Order
             {
-                CustomerId = customerId,
+                CustomerId = customer.Id,
                 RoomId = roomId,
-                Status = 0,
+                Status = OrderStatus.Pending,
                 OrderDate = DateTime.UtcNow,
                 CreatedOn = DateTime.UtcNow
             };
@@ -68,7 +86,7 @@ namespace System.Application.Services
         public async Task<ApiResponse<List<Order>>> GetPendingOrdersAsync(int storeId)
         {
             var orders = await _orderRepository.FindWithIncludesAsync(
-                predicate: o => o.Customer.StoreId == storeId && o.Status == 0,
+                predicate: o => o.Customer.StoreId == storeId && o.Status == OrderStatus.Pending ,
                 include: q => q.Include(o => o.Customer).Include(o => o.OrderItems).ThenInclude(oi => oi.MenuItem),
                 includeDeleted: false);
 

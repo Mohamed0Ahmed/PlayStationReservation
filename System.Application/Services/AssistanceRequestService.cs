@@ -11,45 +11,68 @@ namespace System.Application.Services
     {
         private readonly IRepository<AssistanceRequest, int> _assistanceRequestRepository;
         private readonly IRepository<AssistanceRequestType, int> _requestTypeRepository;
+        private readonly IRepository<DefaultAssistanceRequestType, int> _defaultRequestTypeRepository;
         private readonly INotificationService _notificationService;
 
         public AssistanceRequestService(
             IRepository<AssistanceRequest, int> assistanceRequestRepository,
             IRepository<AssistanceRequestType, int> requestTypeRepository,
+            IRepository<DefaultAssistanceRequestType, int> defaultRequestTypeRepository,
             INotificationService notificationService)
         {
             _assistanceRequestRepository = assistanceRequestRepository;
             _requestTypeRepository = requestTypeRepository;
+            _defaultRequestTypeRepository = defaultRequestTypeRepository;
             _notificationService = notificationService;
         }
 
-        public async Task<ApiResponse<AssistanceRequest>> CreateAssistanceRequestAsync(int customerId, int roomId, int requestTypeId)
+        public async Task<ApiResponse<AssistanceRequest>> CreateAssistanceRequestAsync(int roomId, int requestTypeId)
         {
-            var requestType = await _requestTypeRepository.GetByIdAsync(requestTypeId);
-            if (requestType == null)
+            var customType = await _requestTypeRepository.GetByIdAsync(requestTypeId);
+            if (customType != null)
             {
-                return new ApiResponse<AssistanceRequest>("نوع المساعدة غير موجود", 404);
+                var request = new AssistanceRequest
+                {
+                    RoomId = roomId,
+                    RequestTypeId = requestTypeId,
+                    Status = AssistanceRequestStatus.Pending,
+                    RequestDate = DateTime.UtcNow,
+                    CreatedOn = DateTime.UtcNow
+                };
+
+                await _assistanceRequestRepository.AddAsync(request);
+                await _notificationService.SendAssistanceRequestNotificationAsync(customType.StoreId, roomId);
+                return new ApiResponse<AssistanceRequest>(request, "تم إضافة طلب المساعدة بنجاح", 201);
             }
 
-            var request = new AssistanceRequest
-            {
-                CustomerId = customerId,
-                RoomId = roomId,
-                RequestTypeId = requestTypeId,
-                Status = AssistanceRequestStatus.Pending,
-                RequestDate = DateTime.UtcNow,
-                CreatedOn = DateTime.UtcNow
-            };
+            var defaultType = await _defaultRequestTypeRepository.GetByIdAsync(requestTypeId);
 
-            await _assistanceRequestRepository.AddAsync(request);
-            await _notificationService.SendAssistanceRequestNotificationAsync(requestType.StoreId, roomId);
-            return new ApiResponse<AssistanceRequest>(request, "تم إضافة طلب المساعدة بنجاح", 201);
+           ///if (defaultType != null)
+           ///{
+           ///    var storeId = (await _requestTypeRepository.FindAsync(rt => rt.StoreId == ( _requestTypeRepository.GetByIdAsync(1))?.StoreId)).FirstOrDefault()?.StoreId ?? 1; 
+           ///    var request = new AssistanceRequest
+           ///    {
+           ///        RoomId = roomId,
+           ///        RequestTypeId = requestTypeId,
+           ///        Status = "Pending",
+           ///        RequestDate = DateTime.UtcNow,
+           ///        CreatedOn = DateTime.UtcNow
+           ///    };
+           ///
+           ///    await _assistanceRequestRepository.AddAsync(request);
+           ///    await _notificationService.SendAssistanceRequestNotificationAsync(storeId, roomId);
+           ///    return new ApiResponse<AssistanceRequest>(request, "تم إضافة طلب المساعدة بنجاح", 201);
+           ///}
+           ///
+
+
+            return new ApiResponse<AssistanceRequest>("نوع المساعدة غير موجود", 404);
         }
 
         public async Task<ApiResponse<List<AssistanceRequest>>> GetPendingAssistanceRequestsAsync(int storeId)
         {
             var requests = await _assistanceRequestRepository.FindWithIncludesAsync(
-                predicate: ar => ar.RequestType.StoreId == storeId && ar.Status == 0,
+                predicate: ar => ar.RequestType.StoreId == storeId && ar.Status == AssistanceRequestStatus.Pending,
                 include: q => q.Include(ar => ar.Customer).Include(ar => ar.Room).Include(ar => ar.RequestType),
                 includeDeleted: false);
 

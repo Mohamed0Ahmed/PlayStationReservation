@@ -5,7 +5,7 @@ namespace System.Application.Abstraction
 {
     public interface IOrderService
     {
-        Task<ApiResponse<Order>> CreateOrderAsync(int customerId, int roomId, List<(int menuItemId, int quantity)> items);
+        Task<ApiResponse<Order>> CreateOrderAsync(string phoneNumber, int roomId, List<(int menuItemId, int quantity)> items);
         Task<ApiResponse<List<Order>>> GetPendingOrdersAsync(int storeId);
         Task<ApiResponse<List<Order>>> GetOrdersAsync(int storeId, bool includeDeleted = false);
         Task<ApiResponse<Order>> ApproveOrderAsync(int orderId, decimal totalAmount);

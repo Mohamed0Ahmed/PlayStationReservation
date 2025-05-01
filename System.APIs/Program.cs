@@ -1,6 +1,8 @@
 using System.Infrastructure;
 using System.Application;
 using System.Shared;
+using System.Infrastructure.Repositories;
+using System.Infrastructure.Unit;
 
 namespace System.APIs
 {
@@ -11,6 +13,9 @@ namespace System.APIs
             var builder = WebApplication.CreateBuilder(args);
 
             #region Services
+
+            builder.Services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 
             builder.Services.AddAuthorization();

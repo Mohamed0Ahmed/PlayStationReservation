@@ -8,10 +8,14 @@ namespace System.Application.Services
     public class AssistanceRequestTypeService : IAssistanceRequestTypeService
     {
         private readonly IRepository<AssistanceRequestType, int> _requestTypeRepository;
+        private readonly IRepository<DefaultAssistanceRequestType, int> _defaultRequestTypeRepository;
 
-        public AssistanceRequestTypeService(IRepository<AssistanceRequestType, int> requestTypeRepository)
+        public AssistanceRequestTypeService(
+            IRepository<AssistanceRequestType, int> requestTypeRepository,
+            IRepository<DefaultAssistanceRequestType, int> defaultRequestTypeRepository)
         {
             _requestTypeRepository = requestTypeRepository;
+            _defaultRequestTypeRepository = defaultRequestTypeRepository;
         }
 
         public async Task<ApiResponse<AssistanceRequestType>> CreateAssistanceRequestTypeAsync(string name, int storeId)
@@ -54,16 +58,27 @@ namespace System.Application.Services
             return new ApiResponse<bool>(true, "تم حذف نوع المساعدة بنجاح");
         }
 
-        public async Task<ApiResponse<List<AssistanceRequestType>>> GetAssistanceRequestTypesAsync(int storeId)
+        public async Task<ApiResponse<List<AssistanceRequestType>>> GetAllAssistanceRequestTypesAsync(int storeId)
         {
-            var requestTypes = await _requestTypeRepository.FindAsync(art => art.StoreId == storeId);
-            return new ApiResponse<List<AssistanceRequestType>>(requestTypes.ToList());
+            var customTypes = await _requestTypeRepository.FindAsync(art => art.StoreId == storeId);
+
+            var defaultTypes = await _defaultRequestTypeRepository.GetAllAsync();
+            var allTypes = customTypes.Concat(defaultTypes.Select(dt => new AssistanceRequestType
+            {
+                Id = 0, // Default types won't have real IDs in this context
+                Name = dt.Name,
+                StoreId = storeId,
+                CreatedOn = dt.CreatedOn
+            })).ToList();
+
+            return new ApiResponse<List<AssistanceRequestType>>(allTypes);
         }
 
         public async Task<ApiResponse<int>> GetTotalAssistanceRequestTypesCountAsync(int storeId)
         {
-            var count = (await _requestTypeRepository.FindAsync(art => art.StoreId == storeId)).Count();
-            return new ApiResponse<int>(count, "تم جلب عدد أنواع المساعدة بنجاح");
+            var customCount = (await _requestTypeRepository.FindAsync(art => art.StoreId == storeId)).Count();
+            var defaultCount = (await _defaultRequestTypeRepository.GetAllAsync()).Count();
+            return new ApiResponse<int>(customCount + defaultCount, "تم جلب عدد أنواع المساعدة بنجاح");
         }
     }
 }

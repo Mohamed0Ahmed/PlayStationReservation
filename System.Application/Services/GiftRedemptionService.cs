@@ -11,26 +11,44 @@ namespace System.Application.Services
         private readonly IRepository<GiftRedemption, int> _giftRedemptionRepository;
         private readonly IRepository<Gift, int> _giftRepository;
         private readonly IRepository<Customer, int> _customerRepository;
+        private readonly IRepository<Room, int> _roomRepository;
         private readonly INotificationService _notificationService;
 
         public GiftRedemptionService(
             IRepository<GiftRedemption, int> giftRedemptionRepository,
             IRepository<Gift, int> giftRepository,
             IRepository<Customer, int> customerRepository,
+            IRepository<Room, int> roomRepository,
             INotificationService notificationService)
         {
             _giftRedemptionRepository = giftRedemptionRepository;
             _giftRepository = giftRepository;
             _customerRepository = customerRepository;
+            _roomRepository = roomRepository;
             _notificationService = notificationService;
         }
 
-        public async Task<ApiResponse<GiftRedemption>> CreateGiftRedemptionAsync(int customerId, int giftId, int roomId)
+        public async Task<ApiResponse<GiftRedemption>> CreateGiftRedemptionAsync(string phoneNumber, int giftId, int roomId)
         {
-            var customer = await _customerRepository.GetByIdAsync(customerId);
+            if (string.IsNullOrEmpty(phoneNumber))
+            {
+                return new ApiResponse<GiftRedemption>("رقم التليفون مطلوب", 400);
+            }
+
+            var room = await _roomRepository.GetByIdAsync(roomId);
+            if (room == null)
+            {
+                return new ApiResponse<GiftRedemption>("الغرفة غير موجودة", 404);
+            }
+
+            var customer = await _customerRepository.GetByIdWithIncludesAsync(
+                id: 0,
+                include: q => q.Where(c => c.PhoneNumber == phoneNumber && c.StoreId == room.StoreId),
+                includeDeleted: false);
+
             if (customer == null)
             {
-                return new ApiResponse<GiftRedemption>("الزبون غير موجود", 404);
+                return new ApiResponse<GiftRedemption>("سجل برقم تليفونك الأول", 400);
             }
 
             var gift = await _giftRepository.GetByIdAsync(giftId);
@@ -46,7 +64,7 @@ namespace System.Application.Services
 
             var redemption = new GiftRedemption
             {
-                CustomerId = customerId,
+                CustomerId = customer.Id,
                 GiftId = giftId,
                 RedemptionDate = DateTime.UtcNow,
                 Status = "Pending",

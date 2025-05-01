@@ -2,12 +2,15 @@
 using System.Application.Abstraction;
 using System.Application.Services;
 
+
 namespace System.Application
 {
     public static class DependencyInjection
     {
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
+
+            // Register services
             services.AddScoped<IStoreService, StoreService>();
             services.AddScoped<ICustomerService, CustomerService>();
             services.AddScoped<IOrderService, OrderService>();
@@ -17,7 +20,6 @@ namespace System.Application
             services.AddScoped<IGiftService, GiftService>();
             services.AddScoped<IGiftRedemptionService, GiftRedemptionService>();
             services.AddScoped<IAssistanceRequestTypeService, AssistanceRequestTypeService>();
-
 
             return services;
         }
