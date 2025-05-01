@@ -1,5 +1,6 @@
 using System.Infrastructure;
 using System.Application;
+using System.Shared;
 
 namespace System.APIs
 {
@@ -15,7 +16,8 @@ namespace System.APIs
             builder.Services.AddAuthorization();
 
             builder.Services.AddInfrastructure(builder.Configuration); 
-            builder.Services.AddApplication(); 
+            builder.Services.AddApplication();
+            builder.Services.AddSignalR();
 
 
             #endregion
@@ -29,8 +31,9 @@ namespace System.APIs
 
             #region Middleware
 
-            app.UseHttpsRedirection();
+            app.MapHub<NotificationHub>("/notificationHub");
 
+            app.UseHttpsRedirection();
             app.UseAuthorization();
 
             #endregion

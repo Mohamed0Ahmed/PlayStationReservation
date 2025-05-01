@@ -8,9 +8,8 @@ namespace System.Infrastructure.Data.Configuration
     {
         public void Configure(EntityTypeBuilder<AssistanceRequest> builder)
         {
-            builder.Property(ar => ar.RequestType)
-                .IsRequired()
-                .HasMaxLength(50);
+            builder.Property(ar => ar.RequestTypeId)
+                .IsRequired();
 
             builder.Property(ar => ar.Status)
                 .IsRequired()
@@ -27,6 +26,11 @@ namespace System.Infrastructure.Data.Configuration
             builder.HasOne(ar => ar.Room)
                 .WithMany(r => r.AssistanceRequests)
                 .HasForeignKey(ar => ar.RoomId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.HasOne(ar => ar.RequestType)
+                .WithMany(art => art.AssistanceRequests)
+                .HasForeignKey(ar => ar.RequestTypeId)
                 .OnDelete(DeleteBehavior.NoAction);
         }
     }

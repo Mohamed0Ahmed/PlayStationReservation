@@ -10,5 +10,7 @@ namespace System.Domain.Models
         public List<MenuCategory> MenuCategories { get; set; } = new List<MenuCategory>();
         public List<PointSetting> PointSettings { get; set; } = new List<PointSetting>();
         public List<Customer> Customers { get; set; } = new List<Customer>();
+        public List<Gift> Gifts { get; set; } = new List<Gift>();
+        public List<AssistanceRequestType> AssistanceRequestTypes { get; set; } = new List<AssistanceRequestType>();
     }
 }

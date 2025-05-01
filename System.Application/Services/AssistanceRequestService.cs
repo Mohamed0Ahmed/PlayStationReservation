@@ -46,7 +46,7 @@ namespace System.Application.Services
 
         public async Task AddAssistanceRequestAsync(AssistanceRequest assistanceRequest)
         {
-            if (string.IsNullOrWhiteSpace(assistanceRequest.RequestType))
+            if (string.IsNullOrWhiteSpace(assistanceRequest.RequestType.Name))
                 throw new CustomException("Request type is required.", 400);
 
             await _customerService.GetCustomerByIdAsync(assistanceRequest.CustomerId);
@@ -60,7 +60,7 @@ namespace System.Application.Services
         public async Task UpdateAssistanceRequestAsync(AssistanceRequest assistanceRequest)
         {
             var existingAssistanceRequest = await GetAssistanceRequestByIdAsync(assistanceRequest.Id);
-            if (string.IsNullOrWhiteSpace(assistanceRequest.RequestType))
+            if (string.IsNullOrWhiteSpace(assistanceRequest.RequestType.Name))
                 throw new CustomException("Request type is required.", 400);
 
             await _customerService.GetCustomerByIdAsync(assistanceRequest.CustomerId);

@@ -20,6 +20,9 @@ namespace System.Infrastructure.Data
         public DbSet<MenuItem> MenuItems { get; set; }
         public DbSet<AssistanceRequest> AssistanceRequests { get; set; }
         public DbSet<PointSetting> PointSettings { get; set; }
+        public DbSet<Gift> Gifts { get; set; }
+        public DbSet<GiftRedemption> GiftRedemptions { get; set; }
+        public DbSet<AssistanceRequestType> AssistanceRequestTypes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

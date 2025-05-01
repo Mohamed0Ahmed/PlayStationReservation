@@ -10,10 +10,14 @@ namespace System.Infrastructure.Data.Configuration
         {
             builder.HasKey(oi => new { oi.OrderId, oi.MenuItemId });
 
+            builder.Property(oi => oi.Quantity)
+                .IsRequired()
+                .HasDefaultValue(1);
+
             builder.HasOne(oi => oi.Order)
                 .WithMany(o => o.OrderItems)
                 .HasForeignKey(oi => oi.OrderId)
-                .OnDelete(DeleteBehavior.NoAction); 
+                .OnDelete(DeleteBehavior.NoAction);
 
             builder.HasOne(oi => oi.MenuItem)
                 .WithMany()

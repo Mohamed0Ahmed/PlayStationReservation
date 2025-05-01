@@ -10,5 +10,6 @@ namespace System.Domain.Models
         public Store Store { get; set; }
         public List<Order> Orders { get; set; } = new List<Order>();
         public List<AssistanceRequest> AssistanceRequests { get; set; } = new List<AssistanceRequest>();
+        public List<GiftRedemption> GiftRedemptions { get; set; } = new List<GiftRedemption>();
     }
 }

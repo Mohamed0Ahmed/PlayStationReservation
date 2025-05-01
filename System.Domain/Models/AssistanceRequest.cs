@@ -9,7 +9,8 @@ namespace System.Domain.Models
         public Customer Customer { get; set; }
         public int RoomId { get; set; }
         public Room Room { get; set; }
-        public string RequestType { get; set; } = string.Empty;
+        public int RequestTypeId { get; set; }
+        public AssistanceRequestType RequestType { get; set; }
         public AssistanceRequestStatus Status { get; set; }
         public string RejectionReason { get; set; } = string.Empty;
         public DateTime RequestDate { get; set; }
