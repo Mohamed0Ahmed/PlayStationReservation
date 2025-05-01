@@ -8,20 +8,14 @@ namespace MvcProject.Models
         public int Id { get; set; }
 
         [Required(ErrorMessage = "Item name is required.")]
-        [StringLength(100, ErrorMessage = "Item name cannot exceed 100 characters.")]
-        public string Name { get; set; } = null!;
+        public string Name { get; set; }
 
-        [Required(ErrorMessage = "Price is required.")]
-        [Range(0.01, 10000, ErrorMessage = "Price must be between 0.01 and 10,000.")]
+        [Range(0, double.MaxValue, ErrorMessage = "Price cannot be negative.")]
         public decimal Price { get; set; }
 
-        [Required(ErrorMessage = "Points required is required.")]
-        [Range(0, 10000, ErrorMessage = "Points required must be between 0 and 10,000.")]
+        [Range(0, int.MaxValue, ErrorMessage = "Points required cannot be negative.")]
         public int PointsRequired { get; set; }
 
-        [Required(ErrorMessage = "Category is required.")]
         public int MenuCategoryId { get; set; }
-
-        public List<MenuCategory> Categories { get; set; } = new();
     }
 }

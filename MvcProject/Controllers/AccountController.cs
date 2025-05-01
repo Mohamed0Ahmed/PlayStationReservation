@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using MvcProject.Models;
+using System.Application.Abstraction;
 
 namespace MvcProject.Controllers
 {
@@ -11,12 +12,18 @@ namespace MvcProject.Controllers
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly ILogger<AccountController> _logger;
+        private readonly IStoreService _storeService;
 
-        public AccountController(SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager, ILogger<AccountController> logger)
+        public AccountController(
+            SignInManager<IdentityUser> signInManager,
+            UserManager<IdentityUser> userManager,
+            ILogger<AccountController> logger,
+            IStoreService storeService)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _logger = logger;
+            _storeService = storeService;
         }
 
         private void CheckForErrorMessage()
@@ -25,6 +32,59 @@ namespace MvcProject.Controllers
             {
                 TempData["ErrorMessage"] = HttpContext.Items["ErrorMessage"]?.ToString();
             }
+        }
+
+        public IActionResult Register()
+        {
+            return View(new RegisterViewModel());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Register(RegisterViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                CheckForErrorMessage();
+                return View(model);
+            }
+
+            try
+            {
+                // Check if the email is associated with a store
+                var store = await _storeService.GetStoreByOwnerEmailAsync(model.Email);
+                if (store == null)
+                {
+                    _logger.LogWarning("Registration attempt with email {Email} failed: No store associated.", model.Email);
+                    ModelState.AddModelError(string.Empty, "This email is not associated with any store. Please contact the admin.");
+                    CheckForErrorMessage();
+                    return View(model);
+                }
+
+                var user = new IdentityUser { UserName = model.Email, Email = model.Email };
+                var result = await _userManager.CreateAsync(user, model.Password);
+                if (result.Succeeded)
+                {
+                    _logger.LogInformation("User {Email} registered successfully.", model.Email);
+                    await _userManager.AddToRoleAsync(user, "Owner");
+                    TempData["SuccessMessage"] = "Registration successful! Please log in.";
+                    return RedirectToAction("Login");
+                }
+
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+                _logger.LogWarning("Registration attempt for user {Email} failed.", model.Email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while registering user {Email}.", model.Email);
+                ModelState.AddModelError(string.Empty, ex.Message);
+            }
+
+            CheckForErrorMessage();
+            return View(model);
         }
 
         public IActionResult Login(string returnUrl = null)
@@ -87,6 +147,4 @@ namespace MvcProject.Controllers
             return RedirectToAction("Index", "Home");
         }
     }
-
-  
 }

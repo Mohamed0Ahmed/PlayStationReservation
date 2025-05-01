@@ -65,6 +65,7 @@ namespace System.Application.Services
 
             existingCustomer.PhoneNumber = customer.PhoneNumber;
             existingCustomer.Points = customer.Points;
+
             _unitOfWork.GetRepository<Customer, int>().Update(existingCustomer);
             await _unitOfWork.SaveChangesAsync();
         }

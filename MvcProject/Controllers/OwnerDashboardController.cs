@@ -3,38 +3,38 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Application.Abstraction;
 using System.Domain.Models;
-using MvcProject.Models;
 using System.Domain.Enums;
+using MvcProject.Models;
 
 namespace MvcProject.Controllers
 {
     [Authorize(Roles = "Owner")]
     public class OwnerDashboardController : Controller
     {
+        private readonly UserManager<IdentityUser> _userManager;
         private readonly IStoreService _storeService;
         private readonly IMenuCategoryService _menuCategoryService;
         private readonly IMenuItemService _menuItemService;
         private readonly IOrderService _orderService;
         private readonly IAssistanceRequestService _assistanceRequestService;
-        private readonly IRoomService _roomService;
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly ILogger<OwnerDashboardController> _logger;
 
         public OwnerDashboardController(
+            UserManager<IdentityUser> userManager,
             IStoreService storeService,
             IMenuCategoryService menuCategoryService,
             IMenuItemService menuItemService,
             IOrderService orderService,
             IAssistanceRequestService assistanceRequestService,
-            IRoomService roomService,
-            UserManager<IdentityUser> userManager)
+            ILogger<OwnerDashboardController> logger)
         {
+            _userManager = userManager;
             _storeService = storeService;
             _menuCategoryService = menuCategoryService;
             _menuItemService = menuItemService;
             _orderService = orderService;
             _assistanceRequestService = assistanceRequestService;
-            _roomService = roomService;
-            _userManager = userManager;
+            _logger = logger;
         }
 
         private void CheckForErrorMessage()
@@ -50,35 +50,16 @@ namespace MvcProject.Controllers
             try
             {
                 var user = await _userManager.GetUserAsync(User);
-                if (user == null)
-                {
-                    return RedirectToAction("Login", "Account");
-                }
-
-                // Find the store associated with the owner
-                var store = (await _storeService.GetStoreByIdAsync(s => s.OwnerEmail == user.Email && !s.IsDeleted)).FirstOrDefault();
+                var store = await _storeService.GetStoreByOwnerEmailAsync(user.Email);
                 if (store == null)
                 {
-                    TempData["ErrorMessage"] = "No store found for this owner.";
-                    return View(new OwnerDashboardViewModel());
+                    TempData["ErrorMessage"] = "Store not found for this owner.";
+                    return RedirectToAction("Index", "Home");
                 }
 
-                // Get menu categories with items
                 var categories = await _menuCategoryService.GetMenuCategoriesByStoreAsync(store.Id);
-
-                // Get all rooms for the store
-                var rooms = (await _roomService.FindRoomAsync(r => r.StoreId == store.Id && !r.IsDeleted)).ToList();
-
-                // Get orders for all rooms in the store
-                var orders = new List<Order>();
-                foreach (var room in rooms)
-                {
-                    var roomOrders = await _orderService.GetOrdersByRoomAsync(room.Id);
-                    orders.AddRange(roomOrders);
-                }
-
-                // Get assistance requests
-                var assistanceRequests = await _assistanceRequestService.FindAssistanceRequestAsync(a => a.Room.StoreId == store.Id && !a.IsDeleted);
+                var orders = await _orderService.GetOrdersByStoreAsync(store.Id);
+                var assistanceRequests = await _assistanceRequestService.GetAssistanceRequestsByStoreAsync(store.Id);
 
                 var viewModel = new OwnerDashboardViewModel
                 {
@@ -94,21 +75,55 @@ namespace MvcProject.Controllers
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "An unexpected error occurred while loading the dashboard. Please try again later.";
-                CheckForErrorMessage();
-                return View(new OwnerDashboardViewModel());
+                _logger.LogError(ex, "An error occurred while loading the owner dashboard.");
+                TempData["ErrorMessage"] = "An unexpected error occurred while loading the dashboard.";
+                return RedirectToAction("Index", "Home");
             }
         }
 
-        // Add Category
-        public IActionResult AddCategory()
+        [HttpGet]
+        public async Task<IActionResult> GetOrderDetails(int id)
         {
-            return View(new MenuCategoryViewModel());
+            try
+            {
+                var order = await _orderService.GetOrderByIdAsync(id);
+                var user = await _userManager.GetUserAsync(User);
+                var store = await _storeService.GetStoreByOwnerEmailAsync(user.Email);
+
+                // Ensure the order belongs to the owner's store
+                if (order.Customer.StoreId != store.Id)
+                {
+                    return NotFound();
+                }
+
+                var orderDetails = new
+                {
+                    id = order.Id,
+                    customerPhone = order.Customer.PhoneNumber,
+                    roomUsername = order.Room.Username,
+                    totalAmount = order.TotalAmount,
+                    paymentMethod = order.PaymentMethod,
+                    pointsUsed = order.PointsUsed,
+                    status = order.Status.ToString()
+                };
+
+                return Json(orderDetails);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching order details for order {OrderId}", id);
+                return StatusCode(500, "Error fetching order details.");
+            }
+        }
+
+        public IActionResult CreateCategory(int storeId)
+        {
+            return View(new MenuCategoryViewModel { StoreId = storeId });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddCategory(MenuCategoryViewModel model)
+        public async Task<IActionResult> CreateCategory(MenuCategoryViewModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -118,55 +133,54 @@ namespace MvcProject.Controllers
 
             try
             {
-                var user = await _userManager.GetUserAsync(User);
-                var store = (await _storeService.FindStoreAsync(s => s.OwnerEmail == user.Email && !s.IsDeleted)).FirstOrDefault();
-                if (store == null)
-                {
-                    TempData["ErrorMessage"] = "No store found for this owner.";
-                    return RedirectToAction("Index");
-                }
-
                 var category = new MenuCategory
                 {
                     Name = model.Name,
-                    StoreId = store.Id
+                    StoreId = model.StoreId
                 };
-
                 await _menuCategoryService.AddMenuCategoryAsync(category);
-                TempData["SuccessMessage"] = "Category added successfully!";
+                TempData["SuccessMessage"] = "Menu category created successfully.";
                 return RedirectToAction("Index");
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "An unexpected error occurred. Please try again later.");
+                _logger.LogError(ex, "An error occurred while creating a menu category.");
+                TempData["ErrorMessage"] = ex.Message;
                 CheckForErrorMessage();
                 return View(model);
             }
         }
 
-        // Edit Category
         public async Task<IActionResult> EditCategory(int id)
         {
-            var category = await _menuCategoryService.GetMenuCategoryByIdAsync(id);
-            if (category == null)
+            try
             {
-                TempData["ErrorMessage"] = "Category not found.";
+                var category = await _menuCategoryService.GetMenuCategoryByIdAsync(id);
+                var model = new MenuCategoryViewModel
+                {
+                    Id = category.Id,
+                    Name = category.Name,
+                    StoreId = category.StoreId
+                };
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving menu category {CategoryId}.", id);
+                TempData["ErrorMessage"] = ex.Message;
                 return RedirectToAction("Index");
             }
-
-            var model = new MenuCategoryViewModel
-            {
-                Id = category.Id,
-                Name = category.Name
-            };
-
-            return View(model);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditCategory(MenuCategoryViewModel model)
+        public async Task<IActionResult> EditCategory(int id, MenuCategoryViewModel model)
         {
+            if (id != model.Id)
+            {
+                return NotFound();
+            }
+
             if (!ModelState.IsValid)
             {
                 CheckForErrorMessage();
@@ -175,91 +189,60 @@ namespace MvcProject.Controllers
 
             try
             {
-                var category = await _menuCategoryService.GetMenuCategoryByIdAsync(model.Id);
-                if (category == null)
+                var category = new MenuCategory
                 {
-                    TempData["ErrorMessage"] = "Category not found.";
-                    return RedirectToAction("Index");
-                }
-
-                category.Name = model.Name;
+                    Id = model.Id,
+                    Name = model.Name,
+                    StoreId = model.StoreId
+                };
                 await _menuCategoryService.UpdateMenuCategoryAsync(category);
-                TempData["SuccessMessage"] = "Category updated successfully!";
+                TempData["SuccessMessage"] = "Menu category updated successfully.";
                 return RedirectToAction("Index");
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "An unexpected error occurred. Please try again later.");
+                _logger.LogError(ex, "An error occurred while updating menu category {CategoryId}.", id);
+                TempData["ErrorMessage"] = ex.Message;
                 CheckForErrorMessage();
                 return View(model);
             }
         }
 
-        // Delete Category
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteCategory(int id)
         {
             try
             {
                 await _menuCategoryService.DeleteMenuCategoryAsync(id);
-                TempData["SuccessMessage"] = "Category deleted successfully!";
+                TempData["SuccessMessage"] = "Menu category deleted successfully.";
+                return RedirectToAction("Index");
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "An unexpected error occurred while deleting the category.";
-            }
-            return RedirectToAction("Index");
-        }
-
-        // Add Menu Item
-        public async Task<IActionResult> AddMenuItem()
-        {
-            var user = await _userManager.GetUserAsync(User);
-            var store = (await _storeService.FindStoreAsync(s => s.OwnerEmail == user.Email && !s.IsDeleted)).FirstOrDefault();
-            if (store == null)
-            {
-                TempData["ErrorMessage"] = "No store found for this owner.";
+                _logger.LogError(ex, "An error occurred while deleting menu category {CategoryId}.", id);
+                TempData["ErrorMessage"] = ex.Message;
                 return RedirectToAction("Index");
             }
+        }
 
-            var categories = await _menuCategoryService.GetMenuCategoriesByStoreAsync(store.Id);
-            var model = new MenuItemViewModel
-            {
-                Categories = categories.ToList()
-            };
-
-            return View(model);
+        public IActionResult CreateMenuItem(int categoryId)
+        {
+            return View(new MenuItemViewModel { MenuCategoryId = categoryId });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddMenuItem(MenuItemViewModel model)
+        public async Task<IActionResult> CreateMenuItem(MenuItemViewModel model)
         {
             if (!ModelState.IsValid)
             {
-                var user = await _userManager.GetUserAsync(User);
-                var store = (await _storeService.FindStoreAsync(s => s.OwnerEmail == user.Email && !s.IsDeleted)).FirstOrDefault();
-                model.Categories = (await _menuCategoryService.GetMenuCategoriesByStoreAsync(store.Id)).ToList();
                 CheckForErrorMessage();
                 return View(model);
             }
 
             try
             {
-                var user = await _userManager.GetUserAsync(User);
-                var store = (await _storeService.FindStoreAsync(s => s.OwnerEmail == user.Email && !s.IsDeleted)).FirstOrDefault();
-                if (store == null)
-                {
-                    TempData["ErrorMessage"] = "No store found for this owner.";
-                    return RedirectToAction("Index");
-                }
-
-                var category = await _menuCategoryService.GetMenuCategoryByIdAsync(model.MenuCategoryId);
-                if (category == null || category.StoreId != store.Id)
-                {
-                    TempData["ErrorMessage"] = "Invalid category.";
-                    return RedirectToAction("Index");
-                }
-
                 var menuItem = new MenuItem
                 {
                     Name = model.Name,
@@ -267,215 +250,154 @@ namespace MvcProject.Controllers
                     PointsRequired = model.PointsRequired,
                     MenuCategoryId = model.MenuCategoryId
                 };
-
                 await _menuItemService.AddMenuItemAsync(menuItem);
-                TempData["SuccessMessage"] = "Menu item added successfully!";
+                TempData["SuccessMessage"] = "Menu item created successfully.";
                 return RedirectToAction("Index");
             }
             catch (Exception ex)
             {
-                var user = await _userManager.GetUserAsync(User);
-                var store = (await _storeService.FindStoreAsync(s => s.OwnerEmail == user.Email && !s.IsDeleted)).FirstOrDefault();
-                model.Categories = (await _menuCategoryService.GetMenuCategoriesByStoreAsync(store.Id)).ToList();
-                ModelState.AddModelError(string.Empty, "An unexpected error occurred. Please try again later.");
+                _logger.LogError(ex, "An error occurred while creating a menu item.");
+                TempData["ErrorMessage"] = ex.Message;
                 CheckForErrorMessage();
                 return View(model);
             }
         }
 
-        // Edit Menu Item
         public async Task<IActionResult> EditMenuItem(int id)
-        {
-            var menuItem = await _menuItemService.GetMenuItemByIdAsync(id);
-            if (menuItem == null)
-            {
-                TempData["ErrorMessage"] = "Menu item not found.";
-                return RedirectToAction("Index");
-            }
-
-            var user = await _userManager.GetUserAsync(User);
-            var store = (await _storeService.FindStoreAsync(s => s.OwnerEmail == user.Email && !s.IsDeleted)).FirstOrDefault();
-            if (store == null || menuItem.MenuCategory.StoreId != store.Id)
-            {
-                TempData["ErrorMessage"] = "No store found for this owner or invalid menu item.";
-                return RedirectToAction("Index");
-            }
-
-            var categories = await _menuCategoryService.GetMenuCategoriesByStoreAsync(store.Id);
-            var model = new MenuItemViewModel
-            {
-                Id = menuItem.Id,
-                Name = menuItem.Name,
-                Price = menuItem.Price,
-                PointsRequired = menuItem.PointsRequired,
-                MenuCategoryId = menuItem.MenuCategoryId,
-                Categories = categories.ToList()
-            };
-
-            return View(model);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditMenuItem(MenuItemViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                var user = await _userManager.GetUserAsync(User);
-                var store = (await _storeService.FindStoreAsync(s => s.OwnerEmail == user.Email && !s.IsDeleted)).FirstOrDefault();
-                model.Categories = (await _menuCategoryService.GetMenuCategoriesByStoreAsync(store.Id)).ToList();
-                CheckForErrorMessage();
-                return View(model);
-            }
-
-            try
-            {
-                var menuItem = await _menuItemService.GetMenuItemByIdAsync(model.Id);
-                if (menuItem == null)
-                {
-                    TempData["ErrorMessage"] = "Menu item not found.";
-                    return RedirectToAction("Index");
-                }
-
-                var user = await _userManager.GetUserAsync(User);
-                var store = (await _storeService.FindStoreAsync(s => s.OwnerEmail == user.Email && !s.IsDeleted)).FirstOrDefault();
-                if (store == null || menuItem.MenuCategory.StoreId != store.Id)
-                {
-                    TempData["ErrorMessage"] = "No store found for this owner or invalid menu item.";
-                    return RedirectToAction("Index");
-                }
-
-                var category = await _menuCategoryService.GetMenuCategoryByIdAsync(model.MenuCategoryId);
-                if (category == null || category.StoreId != store.Id)
-                {
-                    TempData["ErrorMessage"] = "Invalid category.";
-                    return RedirectToAction("Index");
-                }
-
-                menuItem.Name = model.Name;
-                menuItem.Price = model.Price;
-                menuItem.PointsRequired = model.PointsRequired;
-                menuItem.MenuCategoryId = model.MenuCategoryId;
-
-                await _menuItemService.UpdateMenuItemAsync(menuItem);
-                TempData["SuccessMessage"] = "Menu item updated successfully!";
-                return RedirectToAction("Index");
-            }
-            catch (Exception ex)
-            {
-                var user = await _userManager.GetUserAsync(User);
-                var store = (await _storeService.FindStoreAsync(s => s.OwnerEmail == user.Email && !s.IsDeleted)).FirstOrDefault();
-                model.Categories = (await _menuCategoryService.GetMenuCategoriesByStoreAsync(store.Id)).ToList();
-                ModelState.AddModelError(string.Empty, "An unexpected error occurred. Please try again later.");
-                CheckForErrorMessage();
-                return View(model);
-            }
-        }
-
-        // Delete Menu Item
-        public async Task<IActionResult> DeleteMenuItem(int id)
         {
             try
             {
                 var menuItem = await _menuItemService.GetMenuItemByIdAsync(id);
-                if (menuItem == null)
+                var model = new MenuItemViewModel
                 {
-                    TempData["ErrorMessage"] = "Menu item not found.";
-                    return RedirectToAction("Index");
-                }
-
-                var user = await _userManager.GetUserAsync(User);
-                var store = (await _storeService.FindStoreAsync(s => s.OwnerEmail == user.Email && !s.IsDeleted)).FirstOrDefault();
-                if (store == null || menuItem.MenuCategory.StoreId != store.Id)
-                {
-                    TempData["ErrorMessage"] = "No store found for this owner or invalid menu item.";
-                    return RedirectToAction("Index");
-                }
-
-                await _menuItemService.DeleteMenuItemAsync(id);
-                TempData["SuccessMessage"] = "Menu item deleted successfully!";
+                    Id = menuItem.Id,
+                    Name = menuItem.Name,
+                    Price = menuItem.Price,
+                    PointsRequired = menuItem.PointsRequired,
+                    MenuCategoryId = menuItem.MenuCategoryId
+                };
+                return View(model);
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "An unexpected error occurred while deleting the menu item.";
+                _logger.LogError(ex, "An error occurred while retrieving menu item {MenuItemId}.", id);
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToAction("Index");
             }
-            return RedirectToAction("Index");
         }
 
-        // Approve/Reject Order
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateOrderStatus(int orderId, OrderStatus status, string rejectionReason)
+        public async Task<IActionResult> EditMenuItem(int id, MenuItemViewModel model)
+        {
+            if (id != model.Id)
+            {
+                return NotFound();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                CheckForErrorMessage();
+                return View(model);
+            }
+
+            try
+            {
+                var menuItem = new MenuItem
+                {
+                    Id = model.Id,
+                    Name = model.Name,
+                    Price = model.Price,
+                    PointsRequired = model.PointsRequired,
+                    MenuCategoryId = model.MenuCategoryId
+                };
+                await _menuItemService.UpdateMenuItemAsync(menuItem);
+                TempData["SuccessMessage"] = "Menu item updated successfully.";
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while updating menu item {MenuItemId}.", id);
+                TempData["ErrorMessage"] = ex.Message;
+                CheckForErrorMessage();
+                return View(model);
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteMenuItem(int id)
         {
             try
             {
-                var order = await _orderService.GetOrderByIdAsync(orderId);
-                if (order == null)
-                {
-                    TempData["ErrorMessage"] = "Order not found.";
-                    return RedirectToAction("Index");
-                }
+                await _menuItemService.DeleteMenuItemAsync(id);
+                TempData["SuccessMessage"] = "Menu item deleted successfully.";
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while deleting menu item {MenuItemId}.", id);
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToAction("Index");
+            }
+        }
 
-                var user = await _userManager.GetUserAsync(User);
-                var store = (await _storeService.FindStoreAsync(s => s.OwnerEmail == user.Email && !s.IsDeleted)).FirstOrDefault();
-                if (store == null || order.Room.StoreId != store.Id)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateOrderStatus(OrderStatusUpdateViewModel model)
+        {
+            try
+            {
+                var order = await _orderService.GetOrderByIdAsync(model.Id);
+                if (!Enum.TryParse<OrderStatus>(model.Status, out var status))
                 {
-                    TempData["ErrorMessage"] = "No store found for this owner or invalid order.";
+                    TempData["ErrorMessage"] = "Invalid order status.";
                     return RedirectToAction("Index");
                 }
 
                 order.Status = status;
-                if (status == OrderStatus.Rejected)
-                {
-                    order.RejectionReason = rejectionReason;
-                }
+                order.RejectionReason = model.RejectionReason;
+                order.LastModifiedOn = DateTime.UtcNow;
 
                 await _orderService.UpdateOrderAsync(order);
-                TempData["SuccessMessage"] = $"Order {status.ToString().ToLower()} successfully!";
+                TempData["SuccessMessage"] = "Order status updated successfully.";
+                return RedirectToAction("Index");
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "An unexpected error occurred while updating the order.";
+                _logger.LogError(ex, "An error occurred while updating order status for order {OrderId}.", model.Id);
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToAction("Index");
             }
-            return RedirectToAction("Index");
         }
 
-        // Approve/Reject Assistance Request
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateAssistanceRequestStatus(int requestId, AssistanceRequestStatus status, string rejectionReason)
+        public async Task<IActionResult> UpdateAssistanceRequestStatus(AssistanceRequestStatusUpdateViewModel model)
         {
             try
             {
-                var request = await _assistanceRequestService.GetAssistanceRequestByIdAsync(requestId);
-                if (request == null)
+                var assistanceRequest = await _assistanceRequestService.GetAssistanceRequestByIdAsync(model.Id);
+                if (!Enum.TryParse<AssistanceRequestStatus>(model.Status, out var status))
                 {
-                    TempData["ErrorMessage"] = "Assistance request not found.";
+                    TempData["ErrorMessage"] = "Invalid assistance request status.";
                     return RedirectToAction("Index");
                 }
 
-                var user = await _userManager.GetUserAsync(User);
-                var store = (await _storeService.FindStoreAsync(s => s.OwnerEmail == user.Email && !s.IsDeleted)).FirstOrDefault();
-                if (store == null || request.Room.StoreId != store.Id)
-                {
-                    TempData["ErrorMessage"] = "No store found for this owner or invalid request.";
-                    return RedirectToAction("Index");
-                }
+                assistanceRequest.Status = status;
+                assistanceRequest.RejectionReason = model.RejectionReason;
+                assistanceRequest.LastModifiedOn = DateTime.UtcNow;
 
-                request.Status = status;
-                if (status == AssistanceRequestStatus.Rejected)
-                {
-                    request.RejectionReason = rejectionReason;
-                }
-
-                await _assistanceRequestService.UpdateAssistanceRequestAsync(request);
-                TempData["SuccessMessage"] = $"Assistance request {status.ToString().ToLower()} successfully!";
+                await _assistanceRequestService.UpdateAssistanceRequestAsync(assistanceRequest);
+                TempData["SuccessMessage"] = "Assistance request status updated successfully.";
+                return RedirectToAction("Index");
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "An unexpected error occurred while updating the assistance request.";
+                _logger.LogError(ex, "An error occurred while updating assistance request status for request {RequestId}.", model.Id);
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToAction("Index");
             }
-            return RedirectToAction("Index");
         }
     }
 }

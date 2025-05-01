@@ -21,11 +21,23 @@ namespace System.Application.Services
                 throw new CustomException("Store not found.", 404);
             return store;
         }
+
         public async Task<Store> GetStoreByNameAsync(string name, bool includeDeleted = false)
         {
             var store = (await _unitOfWork.GetRepository<Store, int>().FindAsync(s => s.Name == name, includeDeleted)).FirstOrDefault();
             if (store == null)
                 throw new CustomException("Store not found.", 404);
+            return store;
+        }
+
+        public async Task<Store> GetStoreByOwnerEmailAsync(string ownerEmail, bool includeDeleted = false)
+        {
+            if (string.IsNullOrWhiteSpace(ownerEmail))
+                throw new CustomException("Owner email is required.", 400);
+
+            var store = (await _unitOfWork.GetRepository<Store, int>().FindAsync(s => s.OwnerEmail == ownerEmail, includeDeleted)).FirstOrDefault();
+            if (store == null)
+                throw new CustomException("Store not found for this owner email.", 404);
             return store;
         }
 

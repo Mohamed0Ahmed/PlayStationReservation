@@ -105,11 +105,11 @@ namespace MvcProject.Controllers
                 }
 
                 var menuItem = await _menuItemService.GetMenuItemByIdAsync(menuItemId);
-                if (menuItem == null || menuItem.MenuCategory.StoreId != storeId)
-                {
-                    TempData["ErrorMessage"] = "Invalid menu item.";
-                    return RedirectToAction("Index");
-                }
+                //if (menuItem == null || menuItem.MenuCategory.StoreId != storeId)
+                //{
+                //    TempData["ErrorMessage"] = "Invalid menu item.";
+                //    return RedirectToAction("Index");
+                //}
 
                 // Check if using points
                 int pointsUsed = 0;
@@ -149,7 +149,7 @@ namespace MvcProject.Controllers
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "An unexpected error occurred while placing the order. Please try again later.";
+                TempData["ErrorMessage"] = ex.Message;
                 return RedirectToAction("Index");
             }
         }

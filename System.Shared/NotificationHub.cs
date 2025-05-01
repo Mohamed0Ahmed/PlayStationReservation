@@ -4,14 +4,14 @@ namespace System.Shared
 {
     public class NotificationHub : Hub
     {
-        public async Task JoinStoreGroup(int storeId)
+        public async Task JoinStoreGroup(string storeId)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"Store_{storeId}");
+            await Groups.AddToGroupAsync(Context.ConnectionId, storeId);
         }
 
-        public async Task LeaveStoreGroup(int storeId)
+        public async Task LeaveStoreGroup(string storeId)
         {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"Store_{storeId}");
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, storeId);
         }
     }
 }

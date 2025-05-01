@@ -4,6 +4,7 @@ using System.Domain.Models;
 using System.Shared.Exceptions;
 using System.Infrastructure.Unit;
 using System.Shared;
+using System.Domain.Enums;
 
 namespace System.Application.Services
 {
@@ -51,6 +52,19 @@ namespace System.Application.Services
             return await _unitOfWork.GetRepository<Order, int>().FindWithIncludesAsync(o => o.RoomId == roomId, includeDeleted, o => o.OrderItems, o => o.Customer, o => o.Room);
         }
 
+        public async Task<IEnumerable<Order>> GetOrdersByStoreAsync(int storeId, bool includeDeleted = false)
+        {
+            var rooms = await _unitOfWork.GetRepository<Room, int>().FindAsync(r => r.StoreId == storeId, includeDeleted);
+            var roomIds = rooms.Select(r => r.Id).ToList();
+            return await _unitOfWork.GetRepository<Order, int>().FindWithIncludesAsync(
+                o => roomIds.Contains(o.RoomId),
+                includeDeleted,
+                o => o.OrderItems,
+                o => o.Customer,
+                o => o.Room
+            );
+        }
+
         public async Task AddOrderAsync(Order order)
         {
             if (order.TotalAmount < 0)
@@ -72,10 +86,7 @@ namespace System.Application.Services
                 await _unitOfWork.GetRepository<Order, int>().AddAsync(order);
                 await _unitOfWork.SaveChangesAsync();
 
-                var pointsEarned = await CalculatePointsEarned(order);
-                customer.Points += pointsEarned;
-                customer.Points -= order.PointsUsed;
-                await _customerService.UpdateCustomerAsync(customer);
+                // Points are not calculated here; they will be calculated when the order is accepted
 
                 await _unitOfWork.CommitTransactionAsync();
 
@@ -110,15 +121,27 @@ namespace System.Application.Services
             await _unitOfWork.BeginTransactionAsync();
             try
             {
-                var previousPointsEarned = await CalculatePointsEarned(existingOrder);
-                customer.Points -= previousPointsEarned;
+                // Revert previous points adjustments
                 customer.Points += existingOrder.PointsUsed;
 
-                var newPointsEarned = await CalculatePointsEarned(order);
-                customer.Points += newPointsEarned;
-                customer.Points -= order.PointsUsed;
+                // Handle points based on the new status
+                if (order.Status == OrderStatus.Accepted && existingOrder.Status != OrderStatus.Accepted)
+                {
+                    // Order is being accepted
+                    if (order.PaymentMethod == "Cash")
+                    {
+                        var pointsEarned = await CalculatePointsEarned(order);
+                        customer.Points += pointsEarned;
+                    }
+                    customer.Points -= order.PointsUsed;
+                }
+                else if (order.Status == OrderStatus.Rejected && existingOrder.Status != OrderStatus.Rejected)
+                {
+                    // Order is being rejected; revert points used
+                    customer.Points -= order.PointsUsed;
+                }
 
-                await _customerService.UpdateCustomerAsync(customer);
+                //await _customerService.UpdateCustomerAsync(customer);
 
                 existingOrder.CustomerId = order.CustomerId;
                 existingOrder.RoomId = order.RoomId;
@@ -126,7 +149,7 @@ namespace System.Application.Services
                 existingOrder.PaymentMethod = order.PaymentMethod;
                 existingOrder.PointsUsed = order.PointsUsed;
                 existingOrder.Status = order.Status;
-                existingOrder.RejectionReason = order.RejectionReason;
+                existingOrder.RejectionReason = order.RejectionReason ?? "Accepted";
                 existingOrder.OrderDate = order.OrderDate;
                 existingOrder.LastModifiedOn = DateTime.UtcNow;
 
@@ -158,9 +181,7 @@ namespace System.Application.Services
                 }
 
                 var customer = await _customerService.GetCustomerByIdAsync(order.CustomerId);
-                var pointsEarned = await CalculatePointsEarned(order);
-                customer.Points -= pointsEarned;
-                customer.Points += order.PointsUsed;
+                customer.Points += order.PointsUsed; // Revert points used
                 await _customerService.UpdateCustomerAsync(customer);
 
                 _unitOfWork.GetRepository<Order, int>().Delete(order);

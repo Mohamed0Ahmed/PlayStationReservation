@@ -6,6 +6,7 @@ namespace System.Application.Abstraction
     {
         Task<AssistanceRequest> GetAssistanceRequestByIdAsync(int id);
         Task<IEnumerable<AssistanceRequest>> GetAssistanceRequestsByRoomAsync(int roomId, bool includeDeleted = false);
+        Task<IEnumerable<AssistanceRequest>> GetAssistanceRequestsByStoreAsync(int storeId, bool includeDeleted = false);
         Task AddAssistanceRequestAsync(AssistanceRequest assistanceRequest);
         Task UpdateAssistanceRequestAsync(AssistanceRequest assistanceRequest);
         Task DeleteAssistanceRequestAsync(int id);

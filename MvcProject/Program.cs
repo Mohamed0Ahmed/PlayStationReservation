@@ -14,6 +14,8 @@ namespace MvcProject
             var builder = WebApplication.CreateBuilder(args);
 
             #region services
+
+
             builder.Services.AddControllersWithViews();
             builder.Services.AddInfrastructure(builder.Configuration);
             builder.Services.AddApplication();
@@ -33,6 +35,8 @@ namespace MvcProject
 
             // Add SignalR
             builder.Services.AddSignalR();
+
+
             #endregion
 
             var app = builder.Build();
@@ -54,7 +58,7 @@ namespace MvcProject
 
             app.MapControllerRoute(
                 name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
+                pattern: "{controller=CustomerLogin}/{action=Index}/{id?}");
 
             // Add SignalR hub endpoint
             app.MapHub<NotificationHub>("/notificationHub");

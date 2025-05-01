@@ -32,6 +32,18 @@ namespace System.Application.Services
             return await _unitOfWork.GetRepository<AssistanceRequest, int>().FindAsync(ar => ar.RoomId == roomId, includeDeleted);
         }
 
+        public async Task<IEnumerable<AssistanceRequest>> GetAssistanceRequestsByStoreAsync(int storeId, bool includeDeleted = false)
+        {
+            var rooms = await _unitOfWork.GetRepository<Room, int>().FindAsync(r => r.StoreId == storeId, includeDeleted);
+            var roomIds = rooms.Select(r => r.Id).ToList();
+            return await _unitOfWork.GetRepository<AssistanceRequest, int>().FindWithIncludesAsync(
+                ar => roomIds.Contains(ar.RoomId),
+                includeDeleted,
+                ar => ar.Customer,
+                ar => ar.Room
+            );
+        }
+
         public async Task AddAssistanceRequestAsync(AssistanceRequest assistanceRequest)
         {
             if (string.IsNullOrWhiteSpace(assistanceRequest.RequestType))
@@ -40,15 +52,6 @@ namespace System.Application.Services
             await _customerService.GetCustomerByIdAsync(assistanceRequest.CustomerId);
             await _roomService.GetRoomByIdAsync(assistanceRequest.RoomId);
 
-            // Check for duplicate request (same RequestType, RoomId, and same day)
-            var today = DateTime.UtcNow.Date;
-            var existingRequest = (await _unitOfWork.GetRepository<AssistanceRequest, int>().FindAsync(ar =>
-                ar.RequestType == assistanceRequest.RequestType &&
-                ar.RoomId == assistanceRequest.RoomId &&
-                ar.RequestDate.Date == today &&
-                !ar.IsDeleted)).FirstOrDefault();
-            if (existingRequest != null)
-                throw new CustomException($"An assistance request of type '{assistanceRequest.RequestType}' already exists for this room today.", 400);
 
             await _unitOfWork.GetRepository<AssistanceRequest, int>().AddAsync(assistanceRequest);
             await _unitOfWork.SaveChangesAsync();
@@ -63,16 +66,7 @@ namespace System.Application.Services
             await _customerService.GetCustomerByIdAsync(assistanceRequest.CustomerId);
             await _roomService.GetRoomByIdAsync(assistanceRequest.RoomId);
 
-            // Check for duplicate request (excluding the current request)
-            var today = DateTime.UtcNow.Date;
-            var duplicateRequest = (await _unitOfWork.GetRepository<AssistanceRequest, int>().FindAsync(ar =>
-                ar.RequestType == assistanceRequest.RequestType &&
-                ar.RoomId == assistanceRequest.RoomId &&
-                ar.RequestDate.Date == today &&
-                ar.Id != assistanceRequest.Id &&
-                !ar.IsDeleted)).FirstOrDefault();
-            if (duplicateRequest != null)
-                throw new CustomException($"Another assistance request of type '{assistanceRequest.RequestType}' already exists for this room today.", 400);
+
 
             existingAssistanceRequest.CustomerId = assistanceRequest.CustomerId;
             existingAssistanceRequest.RoomId = assistanceRequest.RoomId;
