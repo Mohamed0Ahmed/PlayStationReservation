@@ -1,238 +1,136 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Application.Abstraction;
-using System.Domain.Models;
-using System.Shared.Exceptions;
-using System.Infrastructure.Unit;
-using System.Shared;
 using System.Domain.Enums;
+using System.Domain.Models;
+using System.Infrastructure.Repositories;
+using System.Shared;
 
 namespace System.Application.Services
 {
     public class OrderService : IOrderService
     {
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly ICustomerService _customerService;
-        private readonly IRoomService _roomService;
-        private readonly IPointSettingService _pointSettingService;
-        private readonly IHubContext<NotificationHub> _hubContext;
+        private readonly IRepository<Order, int> _orderRepository;
+        private readonly IRepository<OrderItem, int> _orderItemRepository;
+        private readonly IRepository<Customer, int> _customerRepository;
+        private readonly IRepository<PointSetting, int> _pointSettingRepository;
+        private readonly INotificationService _notificationService;
 
         public OrderService(
-            IUnitOfWork unitOfWork,
-            ICustomerService customerService,
-            IRoomService roomService,
-            IPointSettingService pointSettingService,
-            IHubContext<NotificationHub> hubContext)
+            IRepository<Order, int> orderRepository,
+            IRepository<OrderItem, int> orderItemRepository,
+            IRepository<Customer, int> customerRepository,
+            IRepository<PointSetting, int> pointSettingRepository,
+            INotificationService notificationService)
         {
-            _unitOfWork = unitOfWork;
-            _customerService = customerService;
-            _roomService = roomService;
-            _pointSettingService = pointSettingService;
-            _hubContext = hubContext;
+            _orderRepository = orderRepository;
+            _orderItemRepository = orderItemRepository;
+            _customerRepository = customerRepository;
+            _pointSettingRepository = pointSettingRepository;
+            _notificationService = notificationService;
         }
 
-        private async Task<int> CalculatePointsEarned(Order order)
+        public async Task<ApiResponse<Order>> CreateOrderAsync(int customerId, int roomId, List<(int menuItemId, int quantity)> items)
         {
-            var room = await _roomService.GetRoomByIdAsync(order.RoomId);
-            var pointSettings = await _pointSettingService.GetPointSettingsByStoreAsync(room.StoreId);
-            var pointSetting = pointSettings.OrderByDescending(ps => ps.Amount).FirstOrDefault(ps => ps.Amount <= order.TotalAmount);
-            return pointSetting?.Points ?? 0;
+            var customer = await _customerRepository.GetByIdAsync(customerId);
+            if (customer == null)
+            {
+                return new ApiResponse<Order>("الزبون غير موجود", 404);
+            }
+
+            var order = new Order
+            {
+                CustomerId = customerId,
+                RoomId = roomId,
+                Status = 0,
+                OrderDate = DateTime.UtcNow,
+                CreatedOn = DateTime.UtcNow
+            };
+
+            await _orderRepository.AddAsync(order);
+
+            foreach (var item in items)
+            {
+                var orderItem = new OrderItem
+                {
+                    OrderId = order.Id,
+                    MenuItemId = item.menuItemId,
+                    Quantity = item.quantity,
+                    CreatedOn = DateTime.UtcNow
+                };
+                await _orderItemRepository.AddAsync(orderItem);
+                order.OrderItems.Add(orderItem);
+            }
+
+            await _notificationService.SendOrderNotificationAsync(customer.StoreId, roomId);
+            return new ApiResponse<Order>(order, "تم إضافة الطلب بنجاح", 201);
         }
 
-        public async Task<Order> GetOrderByIdAsync(int id)
+        public async Task<ApiResponse<List<Order>>> GetPendingOrdersAsync(int storeId)
         {
-            var order = await _unitOfWork.GetRepository<Order, int>().GetByIdWithIncludesAsync(id, false, o => o.OrderItems);
+            var orders = await _orderRepository.FindWithIncludesAsync(
+                predicate: o => o.Customer.StoreId == storeId && o.Status == 0,
+                include: q => q.Include(o => o.Customer).Include(o => o.OrderItems).ThenInclude(oi => oi.MenuItem),
+                includeDeleted: false);
+
+            return new ApiResponse<List<Order>>(orders.ToList());
+        }
+
+        public async Task<ApiResponse<List<Order>>> GetOrdersAsync(int storeId, bool includeDeleted = false)
+        {
+            var orders = await _orderRepository.FindWithIncludesAsync(
+                predicate: o => o.Customer.StoreId == storeId,
+                include: q => q.Include(o => o.Customer).Include(o => o.OrderItems).ThenInclude(oi => oi.MenuItem),
+                includeDeleted: includeDeleted);
+
+            return new ApiResponse<List<Order>>(orders.ToList());
+        }
+
+        public async Task<ApiResponse<Order>> ApproveOrderAsync(int orderId, decimal totalAmount)
+        {
+            var order = await _orderRepository.GetByIdWithIncludesAsync(orderId, include: q => q.Include(o => o.Customer).Include(o => o.Room));
             if (order == null)
-                throw new CustomException("Order not found.", 404);
-            return order;
+            {
+                return new ApiResponse<Order>("الطلب غير موجود", 404);
+            }
+
+            order.Status = OrderStatus.Accepted;
+            order.TotalAmount = totalAmount;
+            order.LastModifiedOn = DateTime.UtcNow;
+            _orderRepository.Update(order);
+
+            var pointSetting = await _pointSettingRepository.GetByIdWithIncludesAsync(0, include: q => q.Where(ps => ps.StoreId == order.Customer.StoreId));
+            if (pointSetting != null)
+            {
+                var points = (int)(totalAmount / pointSetting.Amount * pointSetting.Points);
+                order.Customer.Points += points;
+                _customerRepository.Update(order.Customer);
+            }
+
+            await _notificationService.SendOrderStatusUpdateAsync(order.RoomId, true);
+            return new ApiResponse<Order>(order, "تم الموافقة على الطلب بنجاح");
         }
 
-        public async Task<IEnumerable<Order>> GetOrdersByRoomAsync(int roomId, bool includeDeleted = false)
+        public async Task<ApiResponse<Order>> RejectOrderAsync(int orderId, string rejectionReason)
         {
-            var room = await _roomService.GetRoomByIdAsync(roomId);
-            return await _unitOfWork.GetRepository<Order, int>().FindWithIncludesAsync(o => o.RoomId == roomId, includeDeleted, o => o.OrderItems, o => o.Customer, o => o.Room);
-        }
-
-        public async Task<IEnumerable<Order>> GetOrdersByStoreAsync(int storeId, bool includeDeleted = false)
-        {
-            var rooms = await _unitOfWork.GetRepository<Room, int>().FindAsync(r => r.StoreId == storeId, includeDeleted);
-            var roomIds = rooms.Select(r => r.Id).ToList();
-            return await _unitOfWork.GetRepository<Order, int>().FindWithIncludesAsync(
-                o => roomIds.Contains(o.RoomId),
-                includeDeleted,
-                o => o.OrderItems,
-                o => o.Customer,
-                o => o.Room
-            );
-        }
-
-        public async Task AddOrderAsync(Order order)
-        {
-            if (order.TotalAmount < 0)
-                throw new CustomException("Total amount cannot be negative.", 400);
-            if (string.IsNullOrWhiteSpace(order.PaymentMethod))
-                throw new CustomException("Payment method is required.", 400);
-            if (order.PointsUsed < 0)
-                throw new CustomException("Points used cannot be negative.", 400);
-
-            var customer = await _customerService.GetCustomerByIdAsync(order.CustomerId);
-            if (order.PointsUsed > customer.Points)
-                throw new CustomException("Customer does not have enough points.", 400);
-
-            await _roomService.GetRoomByIdAsync(order.RoomId);
-
-            await _unitOfWork.BeginTransactionAsync();
-            try
-            {
-                await _unitOfWork.GetRepository<Order, int>().AddAsync(order);
-                await _unitOfWork.SaveChangesAsync();
-
-                // Points are not calculated here; they will be calculated when the order is accepted
-
-                await _unitOfWork.CommitTransactionAsync();
-
-                // Send notification to the store owner
-                await _hubContext.Clients.Group($"Store_{customer.StoreId}")
-                    .SendAsync("ReceiveOrderNotification", $"New order placed (ID: {order.Id})");
-            }
-            catch
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                throw new CustomException("Failed to add order.", 500);
-            }
-        }
-
-        public async Task UpdateOrderAsync(Order order)
-        {
-            var existingOrder = await GetOrderByIdAsync(order.Id);
-            if (order.TotalAmount < 0)
-                throw new CustomException("Total amount cannot be negative.", 400);
-            if (string.IsNullOrWhiteSpace(order.PaymentMethod))
-                throw new CustomException("Payment method is required.", 400);
-            if (order.PointsUsed < 0)
-                throw new CustomException("Points used cannot be negative.", 400);
-
-            var customer = await _customerService.GetCustomerByIdAsync(order.CustomerId);
-            var tempPoints = customer.Points + existingOrder.PointsUsed;
-            if (order.PointsUsed > tempPoints)
-                throw new CustomException("Customer does not have enough points after reverting previous points.", 400);
-
-            await _roomService.GetRoomByIdAsync(order.RoomId);
-
-            await _unitOfWork.BeginTransactionAsync();
-            try
-            {
-                // Revert previous points adjustments
-                customer.Points += existingOrder.PointsUsed;
-
-                // Handle points based on the new status
-                if (order.Status == OrderStatus.Accepted && existingOrder.Status != OrderStatus.Accepted)
-                {
-                    // Order is being accepted
-                    if (order.PaymentMethod == "Cash")
-                    {
-                        var pointsEarned = await CalculatePointsEarned(order);
-                        customer.Points += pointsEarned;
-                    }
-                    customer.Points -= order.PointsUsed;
-                }
-                else if (order.Status == OrderStatus.Rejected && existingOrder.Status != OrderStatus.Rejected)
-                {
-                    // Order is being rejected; revert points used
-                    customer.Points -= order.PointsUsed;
-                }
-
-                //await _customerService.UpdateCustomerAsync(customer);
-
-                existingOrder.CustomerId = order.CustomerId;
-                existingOrder.RoomId = order.RoomId;
-                existingOrder.TotalAmount = order.TotalAmount;
-                existingOrder.PaymentMethod = order.PaymentMethod;
-                existingOrder.PointsUsed = order.PointsUsed;
-                existingOrder.Status = order.Status;
-                existingOrder.RejectionReason = order.RejectionReason ?? "Accepted";
-                existingOrder.OrderDate = order.OrderDate;
-                existingOrder.LastModifiedOn = DateTime.UtcNow;
-
-                _unitOfWork.GetRepository<Order, int>().Update(existingOrder);
-                await _unitOfWork.SaveChangesAsync();
-
-                await _unitOfWork.CommitTransactionAsync();
-            }
-            catch
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                throw new CustomException("Failed to update order.", 500);
-            }
-        }
-
-        public async Task DeleteOrderAsync(int id)
-        {
-            var order = await GetOrderByIdAsync(id);
-            await _unitOfWork.BeginTransactionAsync();
-            try
-            {
-                // Soft delete all OrderItems
-                if (order.OrderItems != null)
-                {
-                    foreach (var orderItem in order.OrderItems.Where(oi => !oi.IsDeleted))
-                    {
-                        _unitOfWork.GetRepository<OrderItem, int>().Delete(orderItem);
-                    }
-                }
-
-                var customer = await _customerService.GetCustomerByIdAsync(order.CustomerId);
-                customer.Points += order.PointsUsed; // Revert points used
-                await _customerService.UpdateCustomerAsync(customer);
-
-                _unitOfWork.GetRepository<Order, int>().Delete(order);
-                await _unitOfWork.SaveChangesAsync();
-                await _unitOfWork.CommitTransactionAsync();
-            }
-            catch
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                throw new CustomException("Failed to delete order.", 500);
-            }
-        }
-
-        public async Task RestoreOrderAsync(int id)
-        {
-            var order = await _unitOfWork.GetRepository<Order, int>().GetByIdWithIncludesAsync(id, true, o => o.OrderItems);
+            var order = await _orderRepository.GetByIdWithIncludesAsync(orderId, include: q => q.Include(o => o.Room));
             if (order == null)
-                throw new CustomException("Order not found.", 404);
-            if (!order.IsDeleted)
-                throw new CustomException("Order is not deleted.", 400);
-
-            await _unitOfWork.BeginTransactionAsync();
-            try
             {
-                var customer = await _customerService.GetCustomerByIdAsync(order.CustomerId);
-                var pointsEarned = await CalculatePointsEarned(order);
-                if (order.PointsUsed > customer.Points)
-                    throw new CustomException("Customer does not have enough points to restore this order.", 400);
-
-                customer.Points += pointsEarned;
-                customer.Points -= order.PointsUsed;
-                await _customerService.UpdateCustomerAsync(customer);
-
-                // Restore all OrderItems
-                if (order.OrderItems != null)
-                {
-                    foreach (var orderItem in order.OrderItems.Where(oi => oi.IsDeleted))
-                    {
-                        await _unitOfWork.GetRepository<OrderItem, int>().RestoreAsync(orderItem.Id);
-                    }
-                }
-
-                await _unitOfWork.GetRepository<Order, int>().RestoreAsync(id);
-                await _unitOfWork.SaveChangesAsync();
-                await _unitOfWork.CommitTransactionAsync();
+                return new ApiResponse<Order>("الطلب غير موجود", 404);
             }
-            catch
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                throw new CustomException("Failed to restore order.", 500);
-            }
+
+            order.Status = OrderStatus.Rejected;
+            order.RejectionReason = rejectionReason;
+            order.LastModifiedOn = DateTime.UtcNow;
+            _orderRepository.Update(order);
+
+            await _notificationService.SendOrderStatusUpdateAsync(order.RoomId, false, rejectionReason);
+            return new ApiResponse<Order>(order, "تم رفض الطلب بنجاح");
+        }
+
+        public async Task<ApiResponse<int>> GetTotalOrdersCountAsync(int storeId)
+        {
+            var count = (await _orderRepository.FindAsync(o => o.Customer.StoreId == storeId)).Count();
+            return new ApiResponse<int>(count, "تم جلب عدد الطلبات بنجاح");
         }
     }
 }

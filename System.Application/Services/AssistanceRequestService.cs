@@ -1,100 +1,108 @@
-﻿using System.Domain.Models;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Application.Abstraction;
-using System.Shared.Exceptions;
-using System.Infrastructure.Unit;
+using System.Domain.Enums;
+using System.Domain.Models;
+using System.Infrastructure.Repositories;
+using System.Shared;
 
 namespace System.Application.Services
 {
     public class AssistanceRequestService : IAssistanceRequestService
     {
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly ICustomerService _customerService;
-        private readonly IRoomService _roomService;
+        private readonly IRepository<AssistanceRequest, int> _assistanceRequestRepository;
+        private readonly IRepository<AssistanceRequestType, int> _requestTypeRepository;
+        private readonly INotificationService _notificationService;
 
-        public AssistanceRequestService(IUnitOfWork unitOfWork, ICustomerService customerService, IRoomService roomService)
+        public AssistanceRequestService(
+            IRepository<AssistanceRequest, int> assistanceRequestRepository,
+            IRepository<AssistanceRequestType, int> requestTypeRepository,
+            INotificationService notificationService)
         {
-            _unitOfWork = unitOfWork;
-            _customerService = customerService;
-            _roomService = roomService;
+            _assistanceRequestRepository = assistanceRequestRepository;
+            _requestTypeRepository = requestTypeRepository;
+            _notificationService = notificationService;
         }
 
-        public async Task<AssistanceRequest> GetAssistanceRequestByIdAsync(int id)
+        public async Task<ApiResponse<AssistanceRequest>> CreateAssistanceRequestAsync(int customerId, int roomId, int requestTypeId)
         {
-            var assistanceRequest = await _unitOfWork.GetRepository<AssistanceRequest, int>().GetByIdAsync(id);
-            if (assistanceRequest == null)
-                throw new CustomException("AssistanceRequest not found.", 404);
-            return assistanceRequest;
+            var requestType = await _requestTypeRepository.GetByIdAsync(requestTypeId);
+            if (requestType == null)
+            {
+                return new ApiResponse<AssistanceRequest>("نوع المساعدة غير موجود", 404);
+            }
+
+            var request = new AssistanceRequest
+            {
+                CustomerId = customerId,
+                RoomId = roomId,
+                RequestTypeId = requestTypeId,
+                Status = AssistanceRequestStatus.Pending,
+                RequestDate = DateTime.UtcNow,
+                CreatedOn = DateTime.UtcNow
+            };
+
+            await _assistanceRequestRepository.AddAsync(request);
+            await _notificationService.SendAssistanceRequestNotificationAsync(requestType.StoreId, roomId);
+            return new ApiResponse<AssistanceRequest>(request, "تم إضافة طلب المساعدة بنجاح", 201);
         }
 
-        public async Task<IEnumerable<AssistanceRequest>> GetAssistanceRequestsByRoomAsync(int roomId, bool includeDeleted = false)
+        public async Task<ApiResponse<List<AssistanceRequest>>> GetPendingAssistanceRequestsAsync(int storeId)
         {
-            var room = await _roomService.GetRoomByIdAsync(roomId);
-            return await _unitOfWork.GetRepository<AssistanceRequest, int>().FindAsync(ar => ar.RoomId == roomId, includeDeleted);
+            var requests = await _assistanceRequestRepository.FindWithIncludesAsync(
+                predicate: ar => ar.RequestType.StoreId == storeId && ar.Status == 0,
+                include: q => q.Include(ar => ar.Customer).Include(ar => ar.Room).Include(ar => ar.RequestType),
+                includeDeleted: false);
+
+            return new ApiResponse<List<AssistanceRequest>>(requests.ToList());
         }
 
-        public async Task<IEnumerable<AssistanceRequest>> GetAssistanceRequestsByStoreAsync(int storeId, bool includeDeleted = false)
+        public async Task<ApiResponse<List<AssistanceRequest>>> GetAssistanceRequestsAsync(int storeId, bool includeDeleted = false)
         {
-            var rooms = await _unitOfWork.GetRepository<Room, int>().FindAsync(r => r.StoreId == storeId, includeDeleted);
-            var roomIds = rooms.Select(r => r.Id).ToList();
-            return await _unitOfWork.GetRepository<AssistanceRequest, int>().FindWithIncludesAsync(
-                ar => roomIds.Contains(ar.RoomId),
-                includeDeleted,
-                ar => ar.Customer,
-                ar => ar.Room
-            );
+            var requests = await _assistanceRequestRepository.FindWithIncludesAsync(
+                predicate: ar => ar.RequestType.StoreId == storeId,
+                include: q => q.Include(ar => ar.Customer).Include(ar => ar.Room).Include(ar => ar.RequestType),
+                includeDeleted: includeDeleted);
+
+            return new ApiResponse<List<AssistanceRequest>>(requests.ToList());
         }
 
-        public async Task AddAssistanceRequestAsync(AssistanceRequest assistanceRequest)
+        public async Task<ApiResponse<AssistanceRequest>> ApproveAssistanceRequestAsync(int requestId)
         {
-            if (string.IsNullOrWhiteSpace(assistanceRequest.RequestType.Name))
-                throw new CustomException("Request type is required.", 400);
+            var request = await _assistanceRequestRepository.GetByIdWithIncludesAsync(requestId, include: q => q.Include(ar => ar.Room));
+            if (request == null)
+            {
+                return new ApiResponse<AssistanceRequest>("طلب المساعدة غير موجود", 404);
+            }
 
-            await _customerService.GetCustomerByIdAsync(assistanceRequest.CustomerId);
-            await _roomService.GetRoomByIdAsync(assistanceRequest.RoomId);
+            request.Status = AssistanceRequestStatus.Accepted;
+            request.LastModifiedOn = DateTime.UtcNow;
+            _assistanceRequestRepository.Update(request);
 
-
-            await _unitOfWork.GetRepository<AssistanceRequest, int>().AddAsync(assistanceRequest);
-            await _unitOfWork.SaveChangesAsync();
+            await _notificationService.SendAssistanceRequestStatusUpdateAsync(request.RoomId, true);
+            return new ApiResponse<AssistanceRequest>(request, "تم الموافقة على طلب المساعدة بنجاح");
         }
 
-        public async Task UpdateAssistanceRequestAsync(AssistanceRequest assistanceRequest)
+        public async Task<ApiResponse<AssistanceRequest>> RejectAssistanceRequestAsync(int requestId, string rejectionReason)
         {
-            var existingAssistanceRequest = await GetAssistanceRequestByIdAsync(assistanceRequest.Id);
-            if (string.IsNullOrWhiteSpace(assistanceRequest.RequestType.Name))
-                throw new CustomException("Request type is required.", 400);
+            var request = await _assistanceRequestRepository.GetByIdWithIncludesAsync(requestId, include: q => q.Include(ar => ar.Room));
+            if (request == null)
+            {
+                return new ApiResponse<AssistanceRequest>("طلب المساعدة غير موجود", 404);
+            }
 
-            await _customerService.GetCustomerByIdAsync(assistanceRequest.CustomerId);
-            await _roomService.GetRoomByIdAsync(assistanceRequest.RoomId);
+            request.Status = AssistanceRequestStatus.Rejected;
+            request.RejectionReason = rejectionReason;
+            request.LastModifiedOn = DateTime.UtcNow;
+            _assistanceRequestRepository.Update(request);
 
-
-
-            existingAssistanceRequest.CustomerId = assistanceRequest.CustomerId;
-            existingAssistanceRequest.RoomId = assistanceRequest.RoomId;
-            existingAssistanceRequest.RequestType = assistanceRequest.RequestType;
-            existingAssistanceRequest.Status = assistanceRequest.Status;
-            existingAssistanceRequest.RejectionReason = assistanceRequest.RejectionReason;
-            existingAssistanceRequest.RequestDate = assistanceRequest.RequestDate;
-            _unitOfWork.GetRepository<AssistanceRequest, int>().Update(existingAssistanceRequest);
-            await _unitOfWork.SaveChangesAsync();
+            await _notificationService.SendAssistanceRequestStatusUpdateAsync(request.RoomId, false, rejectionReason);
+            return new ApiResponse<AssistanceRequest>(request, "تم رفض طلب المساعدة بنجاح");
         }
 
-        public async Task DeleteAssistanceRequestAsync(int id)
+        public async Task<ApiResponse<int>> GetTotalAssistanceRequestsCountAsync(int storeId)
         {
-            var assistanceRequest = await GetAssistanceRequestByIdAsync(id);
-            _unitOfWork.GetRepository<AssistanceRequest, int>().Delete(assistanceRequest);
-            await _unitOfWork.SaveChangesAsync();
-        }
-
-        public async Task RestoreAssistanceRequestAsync(int id)
-        {
-            var assistanceRequest = await _unitOfWork.GetRepository<AssistanceRequest, int>().GetByIdAsync(id, true);
-            if (assistanceRequest == null)
-                throw new CustomException("AssistanceRequest not found.", 404);
-            if (!assistanceRequest.IsDeleted)
-                throw new CustomException("AssistanceRequest is not deleted.", 400);
-
-            await _unitOfWork.GetRepository<AssistanceRequest, int>().RestoreAsync(id);
-            await _unitOfWork.SaveChangesAsync();
+            var count = (await _assistanceRequestRepository.FindAsync(ar => ar.RequestType.StoreId == storeId)).Count();
+            return new ApiResponse<int>(count, "تم جلب عدد طلبات المساعدة بنجاح");
         }
     }
 }

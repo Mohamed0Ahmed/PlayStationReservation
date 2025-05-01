@@ -13,5 +13,15 @@ namespace System.Shared
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, storeId);
         }
+
+        public async Task JoinRoomGroup(string roomId)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"Room_{roomId}");
+        }
+
+        public async Task LeaveRoomGroup(string roomId)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"Room_{roomId}");
+        }
     }
 }

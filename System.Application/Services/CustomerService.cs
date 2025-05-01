@@ -1,92 +1,67 @@
-﻿using System.Domain.Models;
-using System.Application.Abstraction;
-using System.Shared.Exceptions;
-using System.Infrastructure.Unit;
+﻿using System.Application.Abstraction;
+using System.Domain.Models;
+using System.Infrastructure.Repositories;
+using System.Shared;
 
 namespace System.Application.Services
 {
     public class CustomerService : ICustomerService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly IRepository<Customer, int> _customerRepository;
 
-        public CustomerService(IUnitOfWork unitOfWork)
+        public CustomerService(IRepository<Customer, int> customerRepository)
         {
-            _unitOfWork = unitOfWork;
+            _customerRepository = customerRepository;
         }
 
-        public async Task<Customer> GetCustomerByIdAsync(int id)
+        public async Task<ApiResponse<Customer>> RegisterCustomerAsync(string phoneNumber, int storeId)
         {
-            var customer = await _unitOfWork.GetRepository<Customer, int>().GetByIdAsync(id);
-            if (customer == null)
-                throw new CustomException("Customer not found.", 404);
-            return customer;
-        }
+            var existingCustomer = await _customerRepository.GetByIdWithIncludesAsync(
+                id: 0,
+                include: q => q.Where(c => c.PhoneNumber == phoneNumber && c.StoreId == storeId),
+                includeDeleted: false);
 
-        public async Task<Customer> GetCustomerByPhoneAsync(string phoneNumber , int storeId)
-        {
-            if (string.IsNullOrWhiteSpace(phoneNumber))
-                throw new CustomException("Phone number is required.", 400);
-
-            var customer = (await _unitOfWork.GetRepository<Customer, int>().FindAsync(c => c.PhoneNumber == phoneNumber && !c.IsDeleted)).Where(c=>c.StoreId == storeId).FirstOrDefault();
-            return customer!;
-        }
-
-        public async Task<IEnumerable<Customer>> GetAllCustomersAsync(bool includeDeleted = false)
-        {
-            return await _unitOfWork.GetRepository<Customer, int>().GetAllAsync(includeDeleted);
-        }
-
-        public async Task AddCustomerAsync(Customer customer)
-        {
-            if (string.IsNullOrWhiteSpace(customer.PhoneNumber))
-                throw new CustomException("Phone number is required.", 400);
-            if (customer.Points < 0)
-                throw new CustomException("Points cannot be negative.", 400);
-
-            var existingCustomer = await GetCustomerByPhoneAsync(customer.PhoneNumber , customer.StoreId);
             if (existingCustomer != null)
-                throw new CustomException("Customer with this phone number already exists.", 400);
+            {
+                return new ApiResponse<Customer>("رقم التليفون موجود بالفعل", 400);
+            }
 
-            await _unitOfWork.GetRepository<Customer, int>().AddAsync(customer);
-            await _unitOfWork.SaveChangesAsync();
+            var customer = new Customer
+            {
+                PhoneNumber = phoneNumber,
+                StoreId = storeId,
+                Points = 0,
+                CreatedOn = DateTime.UtcNow
+            };
+
+            await _customerRepository.AddAsync(customer);
+            return new ApiResponse<Customer>(customer, "تم التسجيل بنجاح", 201);
         }
 
-        public async Task UpdateCustomerAsync(Customer customer)
+        public async Task<ApiResponse<Customer>> GetCustomerByPhoneAsync(string phoneNumber, int storeId)
         {
-            var existingCustomer = await GetCustomerByIdAsync(customer.Id);
-            if (string.IsNullOrWhiteSpace(customer.PhoneNumber))
-                throw new CustomException("Phone number is required.", 400);
-            if (customer.Points < 0)
-                throw new CustomException("Points cannot be negative.", 400);
+            var customer = await _customerRepository.GetByIdWithIncludesAsync(
+                id: 0,
+                include: q => q.Where(c => c.PhoneNumber == phoneNumber && c.StoreId == storeId),
+                includeDeleted: false);
 
-            var duplicateCustomer = await GetCustomerByPhoneAsync(customer.PhoneNumber , customer.StoreId);
-            if (duplicateCustomer != null && duplicateCustomer.Id != customer.Id)
-                throw new CustomException("Another customer with this phone number already exists.", 400);
-
-            existingCustomer.PhoneNumber = customer.PhoneNumber;
-            existingCustomer.Points = customer.Points;
-
-            _unitOfWork.GetRepository<Customer, int>().Update(existingCustomer);
-            await _unitOfWork.SaveChangesAsync();
-        }
-
-        public async Task DeleteCustomerAsync(int id)
-        {
-            var customer = await GetCustomerByIdAsync(id);
-            _unitOfWork.GetRepository<Customer, int>().Delete(customer);
-            await _unitOfWork.SaveChangesAsync();
-        }
-
-        public async Task RestoreCustomerAsync(int id)
-        {
-            var customer = await _unitOfWork.GetRepository<Customer, int>().GetByIdAsync(id, true);
             if (customer == null)
-                throw new CustomException("Customer not found.", 404);
-            if (!customer.IsDeleted)
-                throw new CustomException("Customer is not deleted.", 400);
+            {
+                return new ApiResponse<Customer>(" غير موجود", 404);
+            }
 
-            await _unitOfWork.GetRepository<Customer, int>().RestoreAsync(id);
-            await _unitOfWork.SaveChangesAsync();
+            return new ApiResponse<Customer>(customer);
+        }
+
+        public async Task<ApiResponse<int>> GetCustomerPointsAsync(int customerId)
+        {
+            var customer = await _customerRepository.GetByIdAsync(customerId);
+            if (customer == null)
+            {
+                return new ApiResponse<int>(" غير موجود", 404);
+            }
+
+            return new ApiResponse<int>(customer.Points);
         }
     }
 }

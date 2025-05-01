@@ -8,6 +8,6 @@ namespace System.Domain.Models
         public decimal Price { get; set; }
         public int PointsRequired { get; set; }
         public int MenuCategoryId { get; set; }
-        public MenuCategory MenuCategory { get; set; }
+        public Category Category { get; set; }
     }
 }

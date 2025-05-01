@@ -4,9 +4,9 @@ using System.Domain.Models;
 
 namespace System.Infrastructure.Data.Configuration
 {
-    public class MenuCategoryConfiguration : IEntityTypeConfiguration<MenuCategory>
+    public class MenuCategoryConfiguration : IEntityTypeConfiguration<Category>
     {
-        public void Configure(EntityTypeBuilder<MenuCategory> builder)
+        public void Configure(EntityTypeBuilder<Category> builder)
         {
             builder.Property(mc => mc.Name)
                 .IsRequired()

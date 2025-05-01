@@ -1,15 +1,15 @@
 ﻿using System.Domain.Models;
+using System.Shared;
 
 namespace System.Application.Abstraction
 {
     public interface IOrderService
     {
-        Task<Order> GetOrderByIdAsync(int id);
-        Task<IEnumerable<Order>> GetOrdersByRoomAsync(int roomId, bool includeDeleted = false);
-        Task<IEnumerable<Order>> GetOrdersByStoreAsync(int storeId, bool includeDeleted = false);
-        Task AddOrderAsync(Order order);
-        Task UpdateOrderAsync(Order order);
-        Task DeleteOrderAsync(int id);
-        Task RestoreOrderAsync(int id);
+        Task<ApiResponse<Order>> CreateOrderAsync(int customerId, int roomId, List<(int menuItemId, int quantity)> items);
+        Task<ApiResponse<List<Order>>> GetPendingOrdersAsync(int storeId);
+        Task<ApiResponse<List<Order>>> GetOrdersAsync(int storeId, bool includeDeleted = false);
+        Task<ApiResponse<Order>> ApproveOrderAsync(int orderId, decimal totalAmount);
+        Task<ApiResponse<Order>> RejectOrderAsync(int orderId, string rejectionReason);
+        Task<ApiResponse<int>> GetTotalOrdersCountAsync(int storeId);
     }
 }

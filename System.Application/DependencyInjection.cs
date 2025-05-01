@@ -8,16 +8,15 @@ namespace System.Application
     {
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
-
             services.AddScoped<IStoreService, StoreService>();
-            services.AddScoped<IRoomService, RoomService>();
             services.AddScoped<ICustomerService, CustomerService>();
             services.AddScoped<IOrderService, OrderService>();
-            services.AddScoped<IOrderItemService, OrderItemService>();
-            services.AddScoped<IMenuCategoryService, MenuCategoryService>();
-            services.AddScoped<IMenuItemService, MenuItemService>();
+            services.AddScoped<IMenuService, MenuService>();
             services.AddScoped<IAssistanceRequestService, AssistanceRequestService>();
-            services.AddScoped<IPointSettingService, PointSettingService>();
+            services.AddScoped<INotificationService, NotificationService>();
+            services.AddScoped<IGiftService, GiftService>();
+            services.AddScoped<IGiftRedemptionService, GiftRedemptionService>();
+            services.AddScoped<IAssistanceRequestTypeService, AssistanceRequestTypeService>();
 
 
             return services;

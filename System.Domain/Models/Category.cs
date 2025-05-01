@@ -2,7 +2,7 @@
 
 namespace System.Domain.Models
 {
-    public class MenuCategory : BaseEntity<int>
+    public class Category : BaseEntity<int>
     {
         public string Name { get; set; }
         public int StoreId { get; set; }

@@ -16,7 +16,7 @@ namespace System.Infrastructure.Data
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
-        public DbSet<MenuCategory> MenuCategories { get; set; }
+        public DbSet<Category> MenuCategories { get; set; }
         public DbSet<MenuItem> MenuItems { get; set; }
         public DbSet<AssistanceRequest> AssistanceRequests { get; set; }
         public DbSet<PointSetting> PointSettings { get; set; }

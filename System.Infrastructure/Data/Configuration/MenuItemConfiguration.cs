@@ -20,7 +20,7 @@ namespace System.Infrastructure.Data.Configuration
                 .IsRequired();
 
 
-            builder.HasOne(mi => mi.MenuCategory)
+            builder.HasOne(mi => mi.Category)
                 .WithMany(mc => mc.MenuItems)
                 .HasForeignKey(mi => mi.MenuCategoryId);
 

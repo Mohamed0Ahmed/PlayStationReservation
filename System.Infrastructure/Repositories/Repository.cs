@@ -16,84 +16,72 @@ namespace System.Infrastructure.Repositories
             _dbSet = _context.Set<T>();
         }
 
-        public async Task<T> GetByIdAsync(TKey id, bool includeDeleted = false)
+        private IQueryable<T> GetQueryable(
+            Expression<Func<T, bool>>? predicate = null,
+            Func<IQueryable<T>, IQueryable<T>>? include = null,
+            bool includeDeleted = false,
+            bool onlyDeleted = false)
         {
-            var query = _dbSet.AsQueryable();
-            if (includeDeleted)
-                query = query.Where(e => e.IsDeleted); 
-            else
-                query = query.Where(e => !e.IsDeleted); 
+            IQueryable<T> query = _dbSet.AsQueryable();
 
-            return await query.FirstOrDefaultAsync(e => e.Id.Equals(id));
-        }
-
-        public async Task<T> GetByIdWithIncludesAsync(TKey id, bool includeDeleted = false, params Expression<Func<T, object>>[] includes)
-        {
-            var query = _dbSet.AsQueryable();
-            foreach (var include in includes)
-            {
-                query = query.Include(include);
-            }
-            if (includeDeleted)
-                query = query.Where(e => e.IsDeleted); 
-            else
-                query = query.Where(e => !e.IsDeleted);
-
-            return await query.FirstOrDefaultAsync(e => e.Id.Equals(id));
-        }
-
-        public async Task<IEnumerable<T>> GetAllAsync(bool includeDeleted = false)
-        {
-            var query = _dbSet.AsQueryable();
-
-            if (includeDeleted)
-                query = query.Where(e => e.IsDeleted); 
-            else
-                query = query.Where(e => !e.IsDeleted); 
-
-            return await query.ToListAsync();
-        }
-
-        public async Task<IEnumerable<T>> GetAllWithIncludesAsync(bool includeDeleted = false, params Expression<Func<T, object>>[] includes)
-        {
-            var query = _dbSet.AsQueryable();
-            foreach (var include in includes)
-            {
-                query = query.Include(include);
-            }
-            if (includeDeleted)
-                query = query.Where(e => e.IsDeleted); 
-            else
-                query = query.Where(e => !e.IsDeleted);
-
-            return await query.ToListAsync();
-        }
-
-        public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, bool includeDeleted = false)
-        {
-            var query = _dbSet.AsQueryable();
-            if (includeDeleted)
+            if (onlyDeleted)
                 query = query.Where(e => e.IsDeleted);
-            else
-                query = query.Where(e => !e.IsDeleted); 
 
-            return await query.Where(predicate).ToListAsync();
+            else if (!includeDeleted)
+                query = query.Where(e => !e.IsDeleted);
+
+
+            if (predicate != null)
+                query = query.Where(predicate);
+
+
+            if (include != null)
+                query = include(query);
+
+
+            return query;
         }
 
-        public async Task<IEnumerable<T>> FindWithIncludesAsync(Expression<Func<T, bool>> predicate, bool includeDeleted = false, params Expression<Func<T, object>>[] includes)
+        public async Task<T> GetByIdAsync(TKey id, bool includeDeleted = false, bool onlyDeleted = false)
         {
-            var query = _dbSet.AsQueryable();
-            foreach (var include in includes)
-            {
-                query = query.Include(include);
-            }
+            return await GetQueryable(e => e.Id.Equals(id), null, includeDeleted, onlyDeleted)
+                .FirstOrDefaultAsync() ?? null!;
+        }
 
-            if (includeDeleted)
-                query = query.Where(e => e.IsDeleted); 
-            else
-                query = query.Where(e => !e.IsDeleted); 
+        public async Task<T> GetByIdWithIncludesAsync(TKey id, bool includeDeleted = false, bool onlyDeleted = false, Func<IQueryable<T>, IQueryable<T>>? include = null)
+        {
+            return await GetQueryable(e => e.Id.Equals(id), include, includeDeleted, onlyDeleted)
+                .FirstOrDefaultAsync() ?? null!;
+        }
 
-            return await query.Where(predicate).ToListAsync();
+        public async Task<IEnumerable<T>> GetAllAsync(bool includeDeleted = false, bool onlyDeleted = false)
+        {
+            return await GetQueryable(null, null, includeDeleted, onlyDeleted)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<T>> GetAllWithIncludesAsync(bool includeDeleted = false, bool onlyDeleted = false, Func<IQueryable<T>, IQueryable<T>>? include = null)
+        {
+            return await GetQueryable(null, include, includeDeleted, onlyDeleted)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, bool includeDeleted = false, bool onlyDeleted = false)
+        {
+            return await GetQueryable(predicate, null, includeDeleted, onlyDeleted)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<T>> FindWithIncludesAsync(Expression<Func<T, bool>> predicate, bool includeDeleted = false, bool onlyDeleted = false, Func<IQueryable<T>, IQueryable<T>>? include = null)
+        {
+            return await GetQueryable(predicate, include, includeDeleted, onlyDeleted)
+                .ToListAsync();
+        }
+
+        public async Task<bool> AnyAsync(Expression<Func<T, bool>>? predicate = null, bool includeDeleted = false, bool onlyDeleted = false)
+        {
+            return await GetQueryable(predicate, null, includeDeleted, onlyDeleted)
+                .AnyAsync();
         }
 
         public async Task AddAsync(T entity)
@@ -116,7 +104,7 @@ namespace System.Infrastructure.Repositories
 
         public async Task RestoreAsync(TKey id)
         {
-            var entity = await _dbSet.FirstOrDefaultAsync(e => e.Id.Equals(id));
+            var entity = await GetByIdAsync(id, includeDeleted: true, onlyDeleted: true);
             if (entity != null)
             {
                 entity.IsDeleted = false;
