@@ -10,18 +10,15 @@ namespace System.Application.Services
         private readonly IRepository<Store, int> _storeRepository;
         private readonly IRepository<Room, int> _roomRepository;
         private readonly IRepository<PointSetting, int> _pointSettingRepository;
-        private readonly IAssistanceRequestTypeService _assistanceRequestTypeService;
 
         public StoreService(
             IRepository<Store, int> storeRepository,
             IRepository<Room, int> roomRepository,
-            IRepository<PointSetting, int> pointSettingRepository,
-            IAssistanceRequestTypeService assistanceRequestTypeService)
+            IRepository<PointSetting, int> pointSettingRepository)
         {
             _storeRepository = storeRepository;
             _roomRepository = roomRepository;
             _pointSettingRepository = pointSettingRepository;
-            _assistanceRequestTypeService = assistanceRequestTypeService;
         }
 
         public async Task<ApiResponse<Store>> CreateStoreAsync(string name, string ownerEmail)

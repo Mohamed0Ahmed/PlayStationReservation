@@ -61,7 +61,6 @@ namespace System.Application.Services
         public async Task<ApiResponse<List<AssistanceRequestType>>> GetAllAssistanceRequestTypesAsync(int storeId)
         {
             var customTypes = await _requestTypeRepository.FindAsync(art => art.StoreId == storeId);
-
             var defaultTypes = await _defaultRequestTypeRepository.GetAllAsync();
             var allTypes = customTypes.Concat(defaultTypes.Select(dt => new AssistanceRequestType
             {
@@ -79,6 +78,57 @@ namespace System.Application.Services
             var customCount = (await _requestTypeRepository.FindAsync(art => art.StoreId == storeId)).Count();
             var defaultCount = (await _defaultRequestTypeRepository.GetAllAsync()).Count();
             return new ApiResponse<int>(customCount + defaultCount, "تم جلب عدد أنواع المساعدة بنجاح");
+        }
+
+        // New methods for Default Assistance Types
+        public async Task<ApiResponse<DefaultAssistanceRequestType>> CreateDefaultAssistanceTypeAsync(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return new ApiResponse<DefaultAssistanceRequestType>("اسم المساعدة مطلوب", 400);
+            }
+
+            var defaultType = new DefaultAssistanceRequestType
+            {
+                Name = name,
+                CreatedOn = DateTime.UtcNow
+            };
+
+            await _defaultRequestTypeRepository.AddAsync(defaultType);
+            return new ApiResponse<DefaultAssistanceRequestType>(defaultType, "تم إضافة نوع المساعدة الثابتة بنجاح", 201);
+        }
+
+        public async Task<ApiResponse<DefaultAssistanceRequestType>> UpdateDefaultAssistanceTypeAsync(int typeId, string name)
+        {
+            var defaultType = await _defaultRequestTypeRepository.GetByIdAsync(typeId);
+            if (defaultType == null)
+            {
+                return new ApiResponse<DefaultAssistanceRequestType>("نوع المساعدة الثابتة غير موجود", 404);
+            }
+
+            defaultType.Name = name;
+            defaultType.LastModifiedOn = DateTime.UtcNow;
+            _defaultRequestTypeRepository.Update(defaultType);
+
+            return new ApiResponse<DefaultAssistanceRequestType>(defaultType, "تم تعديل نوع المساعدة الثابتة بنجاح");
+        }
+
+        public async Task<ApiResponse<bool>> DeleteDefaultAssistanceTypeAsync(int typeId)
+        {
+            var defaultType = await _defaultRequestTypeRepository.GetByIdAsync(typeId);
+            if (defaultType == null)
+            {
+                return new ApiResponse<bool>("نوع المساعدة الثابتة غير موجود", 404);
+            }
+
+            _defaultRequestTypeRepository.Delete(defaultType);
+            return new ApiResponse<bool>(true, "تم حذف نوع المساعدة الثابتة بنجاح");
+        }
+
+        public async Task<ApiResponse<List<DefaultAssistanceRequestType>>> GetDefaultAssistanceTypesAsync()
+        {
+            var defaultTypes = await _defaultRequestTypeRepository.GetAllAsync();
+            return new ApiResponse<List<DefaultAssistanceRequestType>>(defaultTypes.ToList(), "تم جلب أنواع المساعدة الثابتة بنجاح");
         }
     }
 }
