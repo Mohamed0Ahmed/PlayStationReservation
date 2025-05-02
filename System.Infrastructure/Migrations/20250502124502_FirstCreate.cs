@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace System.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class FirstCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -51,13 +51,12 @@ namespace System.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Customers",
+                name: "DefaultAssistance",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Points = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     DeletedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsHidden = table.Column<bool>(type: "bit", nullable: false),
@@ -68,7 +67,7 @@ namespace System.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Customers", x => x.Id);
+                    table.PrimaryKey("PK_DefaultAssistance", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -199,6 +198,88 @@ namespace System.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "AssistanceRequestTypes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsHidden = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    LastModifiedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AssistanceRequestTypes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AssistanceRequestTypes_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Customers",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Points = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsHidden = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    LastModifiedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Customers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Customers_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Gifts",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    PointsRequired = table.Column<int>(type: "int", nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsHidden = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    LastModifiedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Gifts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Gifts_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MenuCategories",
                 columns: table => new
                 {
@@ -282,6 +363,40 @@ namespace System.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "GiftRedemptions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CustomerId = table.Column<int>(type: "int", nullable: false),
+                    GiftId = table.Column<int>(type: "int", nullable: false),
+                    RedemptionDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    RejectionReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsHidden = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    LastModifiedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GiftRedemptions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_GiftRedemptions_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_GiftRedemptions_Gifts_GiftId",
+                        column: x => x.GiftId,
+                        principalTable: "Gifts",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MenuItems",
                 columns: table => new
                 {
@@ -318,8 +433,8 @@ namespace System.Infrastructure.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CustomerId = table.Column<int>(type: "int", nullable: false),
                     RoomId = table.Column<int>(type: "int", nullable: false),
-                    RequestType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    RequestTypeId = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     RejectionReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     RequestDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
@@ -333,6 +448,11 @@ namespace System.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AssistanceRequests", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AssistanceRequests_AssistanceRequestTypes_RequestTypeId",
+                        column: x => x.RequestTypeId,
+                        principalTable: "AssistanceRequestTypes",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_AssistanceRequests_Customers_CustomerId",
                         column: x => x.CustomerId,
@@ -356,7 +476,7 @@ namespace System.Infrastructure.Migrations
                     TotalAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     PaymentMethod = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     PointsUsed = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     RejectionReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     OrderDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
@@ -388,6 +508,7 @@ namespace System.Infrastructure.Migrations
                 {
                     OrderId = table.Column<int>(type: "int", nullable: false),
                     MenuItemId = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
                     Id = table.Column<int>(type: "int", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     DeletedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -457,15 +578,57 @@ namespace System.Infrastructure.Migrations
                 column: "CustomerId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_AssistanceRequests_RequestTypeId",
+                table: "AssistanceRequests",
+                column: "RequestTypeId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_AssistanceRequests_RoomId",
                 table: "AssistanceRequests",
                 column: "RoomId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Customers_PhoneNumber",
-                table: "Customers",
-                column: "PhoneNumber",
+                name: "IX_AssistanceRequestTypes_Name_StoreId",
+                table: "AssistanceRequestTypes",
+                columns: new[] { "Name", "StoreId" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AssistanceRequestTypes_StoreId",
+                table: "AssistanceRequestTypes",
+                column: "StoreId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Customers_PhoneNumber_StoreId",
+                table: "Customers",
+                columns: new[] { "PhoneNumber", "StoreId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Customers_StoreId",
+                table: "Customers",
+                column: "StoreId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GiftRedemptions_CustomerId",
+                table: "GiftRedemptions",
+                column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GiftRedemptions_GiftId",
+                table: "GiftRedemptions",
+                column: "GiftId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Gifts_Name_StoreId",
+                table: "Gifts",
+                columns: new[] { "Name", "StoreId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Gifts_StoreId",
+                table: "Gifts",
+                column: "StoreId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MenuCategories_Name_StoreId",
@@ -549,6 +712,12 @@ namespace System.Infrastructure.Migrations
                 name: "AssistanceRequests");
 
             migrationBuilder.DropTable(
+                name: "DefaultAssistance");
+
+            migrationBuilder.DropTable(
+                name: "GiftRedemptions");
+
+            migrationBuilder.DropTable(
                 name: "OrderItems");
 
             migrationBuilder.DropTable(
@@ -559,6 +728,12 @@ namespace System.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "AssistanceRequestTypes");
+
+            migrationBuilder.DropTable(
+                name: "Gifts");
 
             migrationBuilder.DropTable(
                 name: "MenuItems");

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace System.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250428223716_AddEnums")]
-    partial class AddEnums
+    [Migration("20250502124502_FirstCreate")]
+    partial class FirstCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -263,10 +263,8 @@ namespace System.Infrastructure.Migrations
                     b.Property<DateTime>("RequestDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("RequestType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("RequestTypeId")
+                        .HasColumnType("int");
 
                     b.Property<int>("RoomId")
                         .HasColumnType("int");
@@ -279,12 +277,14 @@ namespace System.Infrastructure.Migrations
 
                     b.HasIndex("CustomerId");
 
+                    b.HasIndex("RequestTypeId");
+
                     b.HasIndex("RoomId");
 
                     b.ToTable("AssistanceRequests");
                 });
 
-            modelBuilder.Entity("System.Domain.Models.Customer", b =>
+            modelBuilder.Entity("System.Domain.Models.AssistanceRequestType", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -313,25 +313,25 @@ namespace System.Infrastructure.Migrations
                     b.Property<DateTime>("LastModifiedOn")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("PhoneNumber")
+                    b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
-                    b.Property<int>("Points")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PhoneNumber")
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex("Name", "StoreId")
                         .IsUnique();
 
-                    b.ToTable("Customers");
+                    b.ToTable("AssistanceRequestTypes");
                 });
 
-            modelBuilder.Entity("System.Domain.Models.MenuCategory", b =>
+            modelBuilder.Entity("System.Domain.Models.Category", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -376,6 +376,202 @@ namespace System.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("MenuCategories");
+                });
+
+            modelBuilder.Entity("System.Domain.Models.Customer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastModifiedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("Points")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex("PhoneNumber", "StoreId")
+                        .IsUnique();
+
+                    b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("System.Domain.Models.DefaultAssistanceRequestType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastModifiedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DefaultAssistance");
+                });
+
+            modelBuilder.Entity("System.Domain.Models.Gift", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastModifiedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("PointsRequired")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex("Name", "StoreId")
+                        .IsUnique();
+
+                    b.ToTable("Gifts");
+                });
+
+            modelBuilder.Entity("System.Domain.Models.GiftRedemption", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DeletedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("GiftId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastModifiedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("RedemptionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RejectionReason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("GiftId");
+
+                    b.ToTable("GiftRedemptions");
                 });
 
             modelBuilder.Entity("System.Domain.Models.MenuItem", b =>
@@ -531,6 +727,11 @@ namespace System.Infrastructure.Migrations
 
                     b.Property<DateTime>("LastModifiedOn")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("Quantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
 
                     b.HasKey("OrderId", "MenuItemId");
 
@@ -743,6 +944,12 @@ namespace System.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("System.Domain.Models.AssistanceRequestType", "RequestType")
+                        .WithMany("AssistanceRequests")
+                        .HasForeignKey("RequestTypeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("System.Domain.Models.Room", "Room")
                         .WithMany("AssistanceRequests")
                         .HasForeignKey("RoomId")
@@ -751,10 +958,23 @@ namespace System.Infrastructure.Migrations
 
                     b.Navigation("Customer");
 
+                    b.Navigation("RequestType");
+
                     b.Navigation("Room");
                 });
 
-            modelBuilder.Entity("System.Domain.Models.MenuCategory", b =>
+            modelBuilder.Entity("System.Domain.Models.AssistanceRequestType", b =>
+                {
+                    b.HasOne("System.Domain.Models.Store", "Store")
+                        .WithMany("AssistanceRequestTypes")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("System.Domain.Models.Category", b =>
                 {
                     b.HasOne("System.Domain.Models.Store", "Store")
                         .WithMany("MenuCategories")
@@ -765,15 +985,56 @@ namespace System.Infrastructure.Migrations
                     b.Navigation("Store");
                 });
 
+            modelBuilder.Entity("System.Domain.Models.Customer", b =>
+                {
+                    b.HasOne("System.Domain.Models.Store", "Store")
+                        .WithMany("Customers")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("System.Domain.Models.Gift", b =>
+                {
+                    b.HasOne("System.Domain.Models.Store", "Store")
+                        .WithMany("Gifts")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("System.Domain.Models.GiftRedemption", b =>
+                {
+                    b.HasOne("System.Domain.Models.Customer", "Customer")
+                        .WithMany("GiftRedemptions")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("System.Domain.Models.Gift", "Gift")
+                        .WithMany("GiftRedemptions")
+                        .HasForeignKey("GiftId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Gift");
+                });
+
             modelBuilder.Entity("System.Domain.Models.MenuItem", b =>
                 {
-                    b.HasOne("System.Domain.Models.MenuCategory", "MenuCategory")
+                    b.HasOne("System.Domain.Models.Category", "Category")
                         .WithMany("MenuItems")
                         .HasForeignKey("MenuCategoryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("MenuCategory");
+                    b.Navigation("Category");
                 });
 
             modelBuilder.Entity("System.Domain.Models.Order", b =>
@@ -836,16 +1097,28 @@ namespace System.Infrastructure.Migrations
                     b.Navigation("Store");
                 });
 
+            modelBuilder.Entity("System.Domain.Models.AssistanceRequestType", b =>
+                {
+                    b.Navigation("AssistanceRequests");
+                });
+
+            modelBuilder.Entity("System.Domain.Models.Category", b =>
+                {
+                    b.Navigation("MenuItems");
+                });
+
             modelBuilder.Entity("System.Domain.Models.Customer", b =>
                 {
                     b.Navigation("AssistanceRequests");
 
+                    b.Navigation("GiftRedemptions");
+
                     b.Navigation("Orders");
                 });
 
-            modelBuilder.Entity("System.Domain.Models.MenuCategory", b =>
+            modelBuilder.Entity("System.Domain.Models.Gift", b =>
                 {
-                    b.Navigation("MenuItems");
+                    b.Navigation("GiftRedemptions");
                 });
 
             modelBuilder.Entity("System.Domain.Models.Order", b =>
@@ -862,6 +1135,12 @@ namespace System.Infrastructure.Migrations
 
             modelBuilder.Entity("System.Domain.Models.Store", b =>
                 {
+                    b.Navigation("AssistanceRequestTypes");
+
+                    b.Navigation("Customers");
+
+                    b.Navigation("Gifts");
+
                     b.Navigation("MenuCategories");
 
                     b.Navigation("PointSettings");
