@@ -1,6 +1,6 @@
 ﻿namespace System.Domain.Enums
 {
-    public enum OrderStatus
+    public enum Status
     {
         Pending,
         Accepted,

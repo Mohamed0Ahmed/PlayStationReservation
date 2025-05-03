@@ -13,46 +13,65 @@ namespace System.Application.Services
             _hubContext = hubContext;
         }
 
-        public async Task SendOrderNotificationAsync(int storeId, int roomId)
+        #region Notifications
+
+        //* Send Order Notification
+        public async Task<ApiResponse<bool>> SendOrderNotificationAsync(int storeId, int roomId)
         {
+         
             var message = $"طلب جديد من الغرفة رقم {roomId}";
             await _hubContext.Clients.Group(storeId.ToString()).SendAsync("ReceiveNotification", message);
+            return new ApiResponse<bool>(true, "تم إرسال إشعار الطلب بنجاح");
         }
 
-        public async Task SendAssistanceRequestNotificationAsync(int storeId, int roomId)
+        //* Send Assistance Request Notification
+        public async Task<ApiResponse<bool>> SendAssistanceRequestNotificationAsync(int storeId, int roomId)
         {
+           
             var message = $"طلب مساعدة جديد من الغرفة رقم {roomId}";
             await _hubContext.Clients.Group(storeId.ToString()).SendAsync("ReceiveNotification", message);
+            return new ApiResponse<bool>(true, "تم إرسال إشعار طلب المساعدة بنجاح");
         }
 
-        public async Task SendGiftRedemptionNotificationAsync(int storeId, int roomId)
+        //* Send Gift Redemption Notification
+        public async Task<ApiResponse<bool>> SendGiftRedemptionNotificationAsync(int storeId, int roomId)
         {
+
             var message = $"طلب استبدال هدية جديد من الغرفة رقم {roomId}";
             await _hubContext.Clients.Group(storeId.ToString()).SendAsync("ReceiveNotification", message);
+            return new ApiResponse<bool>(true, "تم إرسال إشعار طلب استبدال الهدية بنجاح");
         }
 
-        public async Task SendOrderStatusUpdateAsync(int roomId, bool isApproved, string rejectionReason = null)
+        //* Send Order Status Update
+        public async Task<ApiResponse<bool>> SendOrderStatusUpdateAsync(int roomId, bool isApproved, string rejectionReason = null)
         {
             var message = isApproved
                 ? "تم الموافقة على طلبك"
                 : $"تم رفض طلبك للسبب: {rejectionReason}";
             await _hubContext.Clients.Group($"Room_{roomId}").SendAsync("ReceiveStatusUpdate", message);
+            return new ApiResponse<bool>(true, isApproved ? "تم إرسال إشعار الموافقة بنجاح" : "تم إرسال إشعار الرفض بنجاح");
         }
 
-        public async Task SendAssistanceRequestStatusUpdateAsync(int roomId, bool isApproved, string rejectionReason = null)
+        //* Send Assistance Request Status Update
+        public async Task<ApiResponse<bool>> SendAssistanceRequestStatusUpdateAsync(int roomId, bool isApproved, string rejectionReason = null)
         {
             var message = isApproved
                 ? "تم الموافقة على طلب المساعدة الخاص بك"
                 : $"تم رفض طلب المساعدة الخاص بك للسبب: {rejectionReason}";
             await _hubContext.Clients.Group($"Room_{roomId}").SendAsync("ReceiveStatusUpdate", message);
+            return new ApiResponse<bool>(true, isApproved ? "تم إرسال إشعار الموافقة بنجاح" : "تم إرسال إشعار الرفض بنجاح");
         }
 
-        public async Task SendGiftRedemptionStatusUpdateAsync(int roomId, bool isApproved, string rejectionReason = null)
+        //* Send Gift Redemption Status Update
+        public async Task<ApiResponse<bool>> SendGiftRedemptionStatusUpdateAsync(int roomId, bool isApproved, string rejectionReason = null)
         {
             var message = isApproved
                 ? "تم الموافقة على طلب استبدال الهدية الخاص بك"
                 : $"تم رفض طلب استبدال الهدية الخاص بك للسبب: {rejectionReason}";
             await _hubContext.Clients.Group($"Room_{roomId}").SendAsync("ReceiveStatusUpdate", message);
+            return new ApiResponse<bool>(true, isApproved ? "تم إرسال إشعار الموافقة بنجاح" : "تم إرسال إشعار الرفض بنجاح");
         }
+
+        #endregion
     }
 }

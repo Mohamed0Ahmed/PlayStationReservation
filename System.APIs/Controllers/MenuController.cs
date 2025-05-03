@@ -1,0 +1,122 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Application.Abstraction;
+using System.Domain.Models;
+using System.Shared;
+using System.Shared.DTOs;
+
+namespace System.APIs.Controllers
+{
+    [Route("api/menus")]
+    [ApiController]
+    [Authorize(Roles = "Owner")]
+    public class MenuController : ControllerBase
+    {
+        private readonly IMenuService _menuService;
+
+        public MenuController(IMenuService menuService)
+        {
+            _menuService = menuService;
+        }
+
+        #region Categories
+
+        //* Create Category
+        [HttpPost("categories")]
+        public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryRequest request)
+        {
+            var response = await _menuService.CreateCategoryAsync(request.Name, request.StoreId);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        //* Update Category
+        [HttpPut("categories/{id}")]
+        public async Task<IActionResult> UpdateCategory(int id, [FromBody] string name)
+        {
+            var response = await _menuService.UpdateCategoryAsync(id, name);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        //* Delete Category
+        [HttpDelete("categories/{id}")]
+        public async Task<IActionResult> DeleteCategory(int id)
+        {
+            var response = await _menuService.DeleteCategoryAsync(id);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        //* Restore Category
+        [HttpPut("categories/restore/{id}")]
+        public async Task<IActionResult> RestoreCategory(int id)
+        {
+            var response = await _menuService.RestoreCategoryAsync(id);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        //* Get Categories
+        [HttpGet("categories/{storeId}")]
+        public async Task<IActionResult> GetCategories(int storeId)
+        {
+            var response = await _menuService.GetCategoriesAsync(storeId);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        #endregion
+
+        #region Menu Items
+
+        //* Create Item
+        [HttpPost("items")]
+        public async Task<IActionResult> CreateItem([FromBody] CreateMenuItemRequest request)
+        {
+            var response = await _menuService.CreateItemAsync(request.Name, request.Price, request.PointsRequired, request.CategoryId);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        //* Update Item
+        [HttpPut("items/{id}")]
+        public async Task<IActionResult> UpdateItem(int id, [FromBody] UpdateMenuItemRequest request)
+        {
+            var response = await _menuService.UpdateItemAsync(id, request.Name, request.Price, request.PointsRequired);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        //* Delete Item
+        [HttpDelete("items/{id}")]
+        public async Task<IActionResult> DeleteItem(int id)
+        {
+            var response = await _menuService.DeleteItemAsync(id);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        //* Restore Item
+        [HttpPut("items/restore/{id}")]
+        public async Task<IActionResult> RestoreItem(int id)
+        {
+            var response = await _menuService.RestoreItemAsync(id);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        //* Get Items
+        [HttpGet("items/{categoryId}")]
+        public async Task<IActionResult> GetItems(int categoryId)
+        {
+            var response = await _menuService.GetItemsAsync(categoryId);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        //* Get Total Items Count
+        [HttpGet("items/count/{storeId}")]
+        public async Task<IActionResult> GetTotalItemsCount(int storeId)
+        {
+            var response = await _menuService.GetTotalItemsCountAsync(storeId);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        #endregion
+    }
+}
+
+
+
+

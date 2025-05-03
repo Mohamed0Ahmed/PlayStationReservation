@@ -8,13 +8,13 @@ namespace System.Application.Abstraction
         Task<ApiResponse<AssistanceRequestType>> CreateAssistanceRequestTypeAsync(string name, int storeId);
         Task<ApiResponse<AssistanceRequestType>> UpdateAssistanceRequestTypeAsync(int typeId, string name);
         Task<ApiResponse<bool>> DeleteAssistanceRequestTypeAsync(int typeId);
+        Task<ApiResponse<bool>> RestoreAssistanceRequestTypeAsync(int typeId);
         Task<ApiResponse<List<AssistanceRequestType>>> GetAllAssistanceRequestTypesAsync(int storeId);
         Task<ApiResponse<int>> GetTotalAssistanceRequestTypesCountAsync(int storeId);
-
-        // New methods for Default Assistance Types
         Task<ApiResponse<DefaultAssistanceRequestType>> CreateDefaultAssistanceTypeAsync(string name);
         Task<ApiResponse<DefaultAssistanceRequestType>> UpdateDefaultAssistanceTypeAsync(int typeId, string name);
         Task<ApiResponse<bool>> DeleteDefaultAssistanceTypeAsync(int typeId);
+        Task<ApiResponse<bool>> RestoreDefaultAssistanceTypeAsync(int typeId);
         Task<ApiResponse<List<DefaultAssistanceRequestType>>> GetDefaultAssistanceTypesAsync();
     }
 }
