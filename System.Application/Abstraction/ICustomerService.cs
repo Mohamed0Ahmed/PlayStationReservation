@@ -8,5 +8,8 @@ namespace System.Application.Abstraction
         Task<ApiResponse<Customer>> RegisterCustomerAsync(string phoneNumber, int storeId);
         Task<ApiResponse<Customer>> GetCustomerByPhoneAsync(string phoneNumber, int storeId);
         Task<ApiResponse<int>> GetCustomerPointsAsync(int customerId);
+        Task<ApiResponse<Customer>> UpdateCustomerAsync(int customerId, string phoneNumber, int storeId);
+        Task<ApiResponse<bool>> DeleteCustomerAsync(int customerId);
+        Task<ApiResponse<bool>> RestoreCustomerAsync(int customerId);
     }
 }
