@@ -14,12 +14,15 @@ namespace System.Application.Services
             _unitOfWork = unitOfWork;
         }
 
+        #region Stores
+
+        //* create
         public async Task<ApiResponse<Store>> CreateStoreAsync(string name, string ownerEmail)
         {
             // Check if OwnerEmail is already in use
             if (await _unitOfWork.GetRepository<Store, int>().AnyAsync(s => s.OwnerEmail == ownerEmail || s.Name == name))
                 return new ApiResponse<Store>("الإيميل او الاسم موجود بالفعل", 400);
-            
+
 
             var store = new Store
             {
@@ -33,6 +36,7 @@ namespace System.Application.Services
             return new ApiResponse<Store>(store, $"تم إضافة {nameof(Store)} بنجاح", 201);
         }
 
+        //* update
         public async Task<ApiResponse<Store>> UpdateStoreAsync(int storeId, string name, string ownerEmail)
         {
             var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
@@ -54,6 +58,7 @@ namespace System.Application.Services
             return new ApiResponse<Store>(store, "تم تعديل المحل بنجاح");
         }
 
+        //* update
         public async Task<ApiResponse<bool>> DeleteStoreAsync(int storeId)
         {
             var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
@@ -62,11 +67,39 @@ namespace System.Application.Services
                 return new ApiResponse<bool>("المحل غير موجود", 404);
             }
 
+            var rooms = await _unitOfWork.GetRepository<Room, int>().FindAsync(r => r.StoreId == store.Id);
+
+            foreach (var room in rooms)
+                _unitOfWork.GetRepository<Room, int>().Delete(room);
+
             _unitOfWork.GetRepository<Store, int>().Delete(store);
             await _unitOfWork.SaveChangesAsync();
+
             return new ApiResponse<bool>(true, "تم حذف المحل بنجاح");
         }
 
+        //* restore
+        public async Task<ApiResponse<bool>> RestoreStoreAsync(int storeId)
+        {
+            var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId, onlyDeleted:true);
+            if (!store.IsDeleted)
+            {
+                return new ApiResponse<bool>("المحل غير موجود", 404);
+            }
+
+            var rooms = await _unitOfWork.GetRepository<Room, int>().FindAsync(r => r.StoreId == store.Id , onlyDeleted:true);
+
+            foreach (var room in rooms)
+                await _unitOfWork.GetRepository<Room, int>().RestoreAsync(room.Id);
+
+            await _unitOfWork.GetRepository<Store, int>().RestoreAsync(store.Id);
+            await _unitOfWork.SaveChangesAsync();
+
+            return new ApiResponse<bool>(true, "تم استرجاع المحل بنجاح");
+        }
+
+
+        //* get All
         public async Task<ApiResponse<List<Store>>> GetStoresAsync()
         {
             var stores = await _unitOfWork.GetRepository<Store, int>().GetAllAsync();
@@ -76,6 +109,25 @@ namespace System.Application.Services
             return new ApiResponse<List<Store>>(stores.ToList());
         }
 
+
+        //* get all deleted
+        public async Task<ApiResponse<List<Store>>> GetDeletedStoresAsync()
+        {
+            var stores = await _unitOfWork.GetRepository<Store, int>().GetAllAsync(onlyDeleted: true);
+            if (!stores.Any())
+                return new ApiResponse<List<Store>>("No Deleted Stores", 404);
+
+            return new ApiResponse<List<Store>>(stores.ToList());
+        }
+
+
+        #endregion
+
+
+
+        #region Rooms
+
+        //* Create
         public async Task<ApiResponse<Room>> CreateRoomAsync(int storeId, string username, string password)
         {
             var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
@@ -103,6 +155,7 @@ namespace System.Application.Services
             return new ApiResponse<Room>(room, "تم إضافة الغرفة بنجاح", 201);
         }
 
+        //* Update
         public async Task<ApiResponse<Room>> UpdateRoomAsync(int roomId, string username, string password)
         {
             var room = await _unitOfWork.GetRepository<Room, int>().GetByIdAsync(roomId);
@@ -126,6 +179,7 @@ namespace System.Application.Services
             return new ApiResponse<Room>(room, "تم تعديل الغرفة بنجاح");
         }
 
+        //* Delete
         public async Task<ApiResponse<bool>> DeleteRoomAsync(int roomId)
         {
             var room = await _unitOfWork.GetRepository<Room, int>().GetByIdAsync(roomId);
@@ -139,6 +193,22 @@ namespace System.Application.Services
             return new ApiResponse<bool>(true, "تم حذف الغرفة بنجاح");
         }
 
+        //* Restore
+        public async Task<ApiResponse<bool>> RestoreRoomAsync(int roomId)
+        {
+            var room = await _unitOfWork.GetRepository<Room, int>().GetByIdAsync(roomId, onlyDeleted: true);
+            if (room == null || !room.IsDeleted)
+            {
+                return new ApiResponse<bool>("الغرفة غير موجودة أو غير محذوفة", 404);
+            }
+
+            await _unitOfWork.GetRepository<Room, int>().RestoreAsync(room.Id);
+            await _unitOfWork.SaveChangesAsync();
+
+            return new ApiResponse<bool>(true, "تم استرجاع الغرفة بنجاح");
+        }
+
+        //* get all rooms
         public async Task<ApiResponse<List<Room>>> GetRoomsAsync(int storeId)
         {
             var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
@@ -150,6 +220,12 @@ namespace System.Application.Services
                 return new ApiResponse<List<Room>>("لا يوجد غرف لهذا المحل حاليا", 404);
             return new ApiResponse<List<Room>>(rooms.ToList());
         }
+
+        #endregion
+
+
+
+        #region Point settings
 
         public async Task<ApiResponse<PointSetting>> CreatePointSettingAsync(int storeId, decimal amountPerPoint, int points)
         {
@@ -206,7 +282,10 @@ namespace System.Application.Services
         {
             var settings = await _unitOfWork.GetRepository<PointSetting, int>().FindAsync(ps => ps.StoreId == storeId);
             return new ApiResponse<List<PointSetting>>(settings.ToList());
-        }
+        } 
+
+        #endregion
+
 
         public async Task<ApiResponse<int>> GetTotalStoresCountAsync()
         {

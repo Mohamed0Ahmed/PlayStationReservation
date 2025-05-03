@@ -25,6 +25,8 @@ namespace System.APIs.Controllers
 
         // Default Assistance Types Endpoint *********************************
 
+        #region Default Assistance
+
         [HttpGet("assistance")]
         public async Task<IActionResult> GetDefaultAssistanceTypes()
         {
@@ -63,7 +65,12 @@ namespace System.APIs.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
+        #endregion
+
+
         // Store Endpoints *********************************
+
+        #region Stores
 
         [HttpPost("stores")]
         public async Task<IActionResult> CreateStore([FromBody] CreateStoreRequest request)
@@ -96,6 +103,13 @@ namespace System.APIs.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
+        [HttpPut("stores/restore/{id}")]
+        public async Task<IActionResult> RestoreStore(int id)
+        {
+            var response = await _storeService.RestoreStoreAsync(id);
+            return StatusCode(response.StatusCode, response);
+        }
+
         [HttpGet("stores")]
         public async Task<IActionResult> GetStores()
         {
@@ -103,8 +117,18 @@ namespace System.APIs.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
+        [HttpGet("stores/deleted")]
+        public async Task<IActionResult> GetDeletedStores()
+        {
+            var response = await _storeService.GetDeletedStoresAsync();
+            return StatusCode(response.StatusCode, response);
+        }
+
+        #endregion
 
         // Room Endpoints *********************************
+
+        #region Rooms
 
         [HttpPost("rooms")]
         public async Task<IActionResult> CreateRoom([FromBody] CreateRoomRequest request)
@@ -136,6 +160,12 @@ namespace System.APIs.Controllers
             var response = await _storeService.DeleteRoomAsync(id);
             return StatusCode(response.StatusCode, response);
         }
+        [HttpPut("rooms/restore/{id}")]
+        public async Task<IActionResult> RestoreRoom(int id)
+        {
+            var response = await _storeService.RestoreRoomAsync(id);
+            return StatusCode(response.StatusCode, response);
+        }
 
         [HttpGet("rooms/{storeId}")]
         public async Task<IActionResult> GetRooms(int storeId)
@@ -148,6 +178,8 @@ namespace System.APIs.Controllers
             var response = await _storeService.GetRoomsAsync(storeId);
             return StatusCode(response.StatusCode, response);
         }
+
+        #endregion
     }
   
 }

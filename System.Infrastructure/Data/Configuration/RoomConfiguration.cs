@@ -16,10 +16,6 @@ namespace System.Infrastructure.Data.Configuration
                 .IsRequired()
                 .HasMaxLength(50);
 
-            //builder.HasOne(r => r.Store)
-            //    .WithMany(s => s.Rooms)
-            //    .HasForeignKey(r => r.StoreId);
-
             builder.HasIndex(r => new { r.Username, r.StoreId })
                 .IsUnique();
         }
