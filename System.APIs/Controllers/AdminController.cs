@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System.Application.Abstraction;
 using System.Domain.Models;
 using System.Shared;
@@ -6,8 +7,9 @@ using System.Shared.DTOs;
 
 namespace System.APIs.Controllers
 {
-    [Route("api/admin")]
+    [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class AdminController : ControllerBase
     {
         private readonly IAssistanceRequestTypeService _assistanceRequestTypeService;
@@ -23,14 +25,14 @@ namespace System.APIs.Controllers
 
         // Default Assistance Types Endpoint *********************************
 
-        [HttpGet("default-assistance-types")]
+        [HttpGet("assistance")]
         public async Task<IActionResult> GetDefaultAssistanceTypes()
         {
             var response = await _assistanceRequestTypeService.GetDefaultAssistanceTypesAsync();
             return StatusCode(response.StatusCode, response);
         }
 
-        [HttpPost("default-assistance-types")]
+        [HttpPost("assistance")]
         public async Task<IActionResult> CreateDefaultAssistanceType([FromBody] string name)
         {
             if (string.IsNullOrEmpty(name))
@@ -42,7 +44,7 @@ namespace System.APIs.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
-        [HttpPut("default-assistance-types/{id}")]
+        [HttpPut("assistance/{id}")]
         public async Task<IActionResult> UpdateDefaultAssistanceType(int id, [FromBody] string name)
         {
             if (string.IsNullOrEmpty(name))
@@ -54,7 +56,7 @@ namespace System.APIs.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
-        [HttpDelete("default-assistance-types/{id}")]
+        [HttpDelete("assistance/{id}")]
         public async Task<IActionResult> DeleteDefaultAssistanceType(int id)
         {
             var response = await _assistanceRequestTypeService.DeleteDefaultAssistanceTypeAsync(id);
@@ -109,7 +111,7 @@ namespace System.APIs.Controllers
         {
             if (request.StoreId <= 0 || string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
             {
-                return BadRequest(new ApiResponse<Room>("معرف المحل، اسم المستخدم، وكلمة المرور مطلوبين", 400));
+                return BadRequest(new ApiResponse<Room>("اضف يوزر نيم وباسورد للغرفة ", 400));
             }
 
             var response = await _storeService.CreateRoomAsync(request.StoreId, request.Username, request.Password);

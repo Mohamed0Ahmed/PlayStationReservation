@@ -7,7 +7,6 @@ namespace System.Domain.Models
         public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public int StoreId { get; set; }
-        public Store Store { get; set; }
         public List<Order> Orders { get; set; } = [];
         public List<AssistanceRequest> AssistanceRequests { get; set; } = [];
     }

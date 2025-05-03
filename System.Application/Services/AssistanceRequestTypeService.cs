@@ -1,21 +1,25 @@
 ﻿using System.Application.Abstraction;
 using System.Domain.Models;
 using System.Infrastructure.Repositories;
+using System.Infrastructure.Unit;
 using System.Shared;
 
 namespace System.Application.Services
 {
     public class AssistanceRequestTypeService : IAssistanceRequestTypeService
     {
-        private readonly IRepository<AssistanceRequestType, int> _requestTypeRepository;
-        private readonly IRepository<DefaultAssistanceRequestType, int> _defaultRequestTypeRepository;
+        private readonly IRepository<AssistanceRequestType, int> _assistanceRequestType;
+        private readonly IRepository<DefaultAssistanceRequestType, int> _defaultAssistanceRequestType;
+        private readonly IUnitOfWork _unitOfWork;
 
         public AssistanceRequestTypeService(
-            IRepository<AssistanceRequestType, int> requestTypeRepository,
-            IRepository<DefaultAssistanceRequestType, int> defaultRequestTypeRepository)
+            IRepository<AssistanceRequestType, int> assistanceRequestTypeRepository,
+            IRepository<DefaultAssistanceRequestType, int> defaultAssistanceRequestTypeRepository,
+            IUnitOfWork unitOfWork)
         {
-            _requestTypeRepository = requestTypeRepository;
-            _defaultRequestTypeRepository = defaultRequestTypeRepository;
+            _assistanceRequestType = assistanceRequestTypeRepository;
+            _defaultAssistanceRequestType = defaultAssistanceRequestTypeRepository;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<ApiResponse<AssistanceRequestType>> CreateAssistanceRequestTypeAsync(string name, int storeId)
@@ -27,41 +31,44 @@ namespace System.Application.Services
                 CreatedOn = DateTime.UtcNow
             };
 
-            await _requestTypeRepository.AddAsync(requestType);
-            return new ApiResponse<AssistanceRequestType>(requestType, "تم إضافة نوع المساعدة بنجاح", 201);
+            await _assistanceRequestType.AddAsync(requestType);
+            await _unitOfWork.SaveChangesAsync();
+            return new ApiResponse<AssistanceRequestType>(requestType, "تم إضافة المساعدة بنجاح", 201);
         }
 
         public async Task<ApiResponse<AssistanceRequestType>> UpdateAssistanceRequestTypeAsync(int typeId, string name)
         {
-            var requestType = await _requestTypeRepository.GetByIdAsync(typeId);
+            var requestType = await _assistanceRequestType.GetByIdAsync(typeId);
             if (requestType == null)
             {
-                return new ApiResponse<AssistanceRequestType>("نوع المساعدة غير موجود", 404);
+                return new ApiResponse<AssistanceRequestType>(" المساعدة غير موجودة", 404);
             }
 
             requestType.Name = name;
             requestType.LastModifiedOn = DateTime.UtcNow;
-            _requestTypeRepository.Update(requestType);
+            _assistanceRequestType.Update(requestType);
+            await _unitOfWork.SaveChangesAsync();
 
-            return new ApiResponse<AssistanceRequestType>(requestType, "تم تعديل نوع المساعدة بنجاح");
+            return new ApiResponse<AssistanceRequestType>(requestType, "تم تعديل المساعدة بنجاح");
         }
 
         public async Task<ApiResponse<bool>> DeleteAssistanceRequestTypeAsync(int typeId)
         {
-            var requestType = await _requestTypeRepository.GetByIdAsync(typeId);
+            var requestType = await _assistanceRequestType.GetByIdAsync(typeId);
             if (requestType == null)
             {
-                return new ApiResponse<bool>("نوع المساعدة غير موجود", 404);
+                return new ApiResponse<bool>(" المساعدة غير موجودة", 404);
             }
 
-            _requestTypeRepository.Delete(requestType);
-            return new ApiResponse<bool>(true, "تم حذف نوع المساعدة بنجاح");
+            _assistanceRequestType.Delete(requestType);
+            await _unitOfWork.SaveChangesAsync();
+            return new ApiResponse<bool>(true, "تم حذف  المساعدة بنجاح");
         }
 
         public async Task<ApiResponse<List<AssistanceRequestType>>> GetAllAssistanceRequestTypesAsync(int storeId)
         {
-            var customTypes = await _requestTypeRepository.FindAsync(art => art.StoreId == storeId);
-            var defaultTypes = await _defaultRequestTypeRepository.GetAllAsync();
+            var customTypes = await _assistanceRequestType.FindAsync(art => art.StoreId == storeId);
+            var defaultTypes = await _defaultAssistanceRequestType.GetAllAsync();
             var allTypes = customTypes.Concat(defaultTypes.Select(dt => new AssistanceRequestType
             {
                 Id = 0, // Default types won't have real IDs in this context
@@ -75,8 +82,8 @@ namespace System.Application.Services
 
         public async Task<ApiResponse<int>> GetTotalAssistanceRequestTypesCountAsync(int storeId)
         {
-            var customCount = (await _requestTypeRepository.FindAsync(art => art.StoreId == storeId)).Count();
-            var defaultCount = (await _defaultRequestTypeRepository.GetAllAsync()).Count();
+            var customCount = (await _assistanceRequestType.FindAsync(art => art.StoreId == storeId)).Count();
+            var defaultCount = (await _defaultAssistanceRequestType.GetAllAsync()).Count();
             return new ApiResponse<int>(customCount + defaultCount, "تم جلب عدد أنواع المساعدة بنجاح");
         }
 
@@ -94,13 +101,14 @@ namespace System.Application.Services
                 CreatedOn = DateTime.UtcNow
             };
 
-            await _defaultRequestTypeRepository.AddAsync(defaultType);
+            await _defaultAssistanceRequestType.AddAsync(defaultType);
+            await _unitOfWork.SaveChangesAsync();
             return new ApiResponse<DefaultAssistanceRequestType>(defaultType, "تم إضافة نوع المساعدة الثابتة بنجاح", 201);
         }
 
         public async Task<ApiResponse<DefaultAssistanceRequestType>> UpdateDefaultAssistanceTypeAsync(int typeId, string name)
         {
-            var defaultType = await _defaultRequestTypeRepository.GetByIdAsync(typeId);
+            var defaultType = await _defaultAssistanceRequestType.GetByIdAsync(typeId);
             if (defaultType == null)
             {
                 return new ApiResponse<DefaultAssistanceRequestType>("نوع المساعدة الثابتة غير موجود", 404);
@@ -108,26 +116,32 @@ namespace System.Application.Services
 
             defaultType.Name = name;
             defaultType.LastModifiedOn = DateTime.UtcNow;
-            _defaultRequestTypeRepository.Update(defaultType);
+            _defaultAssistanceRequestType.Update(defaultType);
+            await _unitOfWork.SaveChangesAsync();
 
             return new ApiResponse<DefaultAssistanceRequestType>(defaultType, "تم تعديل نوع المساعدة الثابتة بنجاح");
         }
 
         public async Task<ApiResponse<bool>> DeleteDefaultAssistanceTypeAsync(int typeId)
         {
-            var defaultType = await _defaultRequestTypeRepository.GetByIdAsync(typeId);
+            var defaultType = await _defaultAssistanceRequestType.GetByIdAsync(typeId);
             if (defaultType == null)
             {
                 return new ApiResponse<bool>("نوع المساعدة الثابتة غير موجود", 404);
             }
 
-            _defaultRequestTypeRepository.Delete(defaultType);
+            _defaultAssistanceRequestType.Delete(defaultType);
+            await _unitOfWork.SaveChangesAsync();
             return new ApiResponse<bool>(true, "تم حذف نوع المساعدة الثابتة بنجاح");
         }
 
         public async Task<ApiResponse<List<DefaultAssistanceRequestType>>> GetDefaultAssistanceTypesAsync()
         {
-            var defaultTypes = await _defaultRequestTypeRepository.GetAllAsync();
+            var defaultTypes = await _defaultAssistanceRequestType.GetAllAsync();
+
+            if (!defaultTypes.Any())
+                return new ApiResponse<List<DefaultAssistanceRequestType>>("لا يوجد مساعدات ثابتة حاليا", 404);
+
             return new ApiResponse<List<DefaultAssistanceRequestType>>(defaultTypes.ToList(), "تم جلب أنواع المساعدة الثابتة بنجاح");
         }
     }

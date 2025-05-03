@@ -1,28 +1,26 @@
 ﻿using System.Application.Abstraction;
 using System.Domain.Models;
-using System.Infrastructure.Repositories;
+using System.Infrastructure.Unit;
 using System.Shared;
 
 namespace System.Application.Services
 {
     public class StoreService : IStoreService
     {
-        private readonly IRepository<Store, int> _storeRepository;
-        private readonly IRepository<Room, int> _roomRepository;
-        private readonly IRepository<PointSetting, int> _pointSettingRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public StoreService(
-            IRepository<Store, int> storeRepository,
-            IRepository<Room, int> roomRepository,
-            IRepository<PointSetting, int> pointSettingRepository)
+        public StoreService(IUnitOfWork unitOfWork)
         {
-            _storeRepository = storeRepository;
-            _roomRepository = roomRepository;
-            _pointSettingRepository = pointSettingRepository;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<ApiResponse<Store>> CreateStoreAsync(string name, string ownerEmail)
         {
+            // Check if OwnerEmail is already in use
+            if (await _unitOfWork.GetRepository<Store, int>().AnyAsync(s => s.OwnerEmail == ownerEmail || s.Name == name))
+                return new ApiResponse<Store>("الإيميل او الاسم موجود بالفعل", 400);
+            
+
             var store = new Store
             {
                 Name = name,
@@ -30,50 +28,66 @@ namespace System.Application.Services
                 CreatedOn = DateTime.UtcNow
             };
 
-            await _storeRepository.AddAsync(store);
-            return new ApiResponse<Store>(store, "تم إضافة المحل بنجاح", 201);
+            await _unitOfWork.GetRepository<Store, int>().AddAsync(store);
+            await _unitOfWork.SaveChangesAsync();
+            return new ApiResponse<Store>(store, $"تم إضافة {nameof(Store)} بنجاح", 201);
         }
 
         public async Task<ApiResponse<Store>> UpdateStoreAsync(int storeId, string name, string ownerEmail)
         {
-            var store = await _storeRepository.GetByIdAsync(storeId);
+            var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
             if (store == null)
             {
                 return new ApiResponse<Store>("المحل غير موجود", 404);
             }
 
+            // Check if OwnerEmail is already in use by another store
+            if (await _unitOfWork.GetRepository<Store, int>().AnyAsync(s => s.OwnerEmail == ownerEmail || s.Name == name))
+                return new ApiResponse<Store>("الإيميل او الاسم موجود بالفعل", 400);
+
             store.Name = name;
             store.OwnerEmail = ownerEmail;
             store.LastModifiedOn = DateTime.UtcNow;
-            _storeRepository.Update(store);
+            _unitOfWork.GetRepository<Store, int>().Update(store);
+            await _unitOfWork.SaveChangesAsync();
 
             return new ApiResponse<Store>(store, "تم تعديل المحل بنجاح");
         }
 
         public async Task<ApiResponse<bool>> DeleteStoreAsync(int storeId)
         {
-            var store = await _storeRepository.GetByIdAsync(storeId);
+            var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
             if (store == null)
             {
                 return new ApiResponse<bool>("المحل غير موجود", 404);
             }
 
-            _storeRepository.Delete(store);
+            _unitOfWork.GetRepository<Store, int>().Delete(store);
+            await _unitOfWork.SaveChangesAsync();
             return new ApiResponse<bool>(true, "تم حذف المحل بنجاح");
         }
 
         public async Task<ApiResponse<List<Store>>> GetStoresAsync()
         {
-            var stores = await _storeRepository.GetAllAsync();
+            var stores = await _unitOfWork.GetRepository<Store, int>().GetAllAsync();
+            if (!stores.Any())
+                return new ApiResponse<List<Store>>("No Stores Added Yet", 404);
+
             return new ApiResponse<List<Store>>(stores.ToList());
         }
 
         public async Task<ApiResponse<Room>> CreateRoomAsync(int storeId, string username, string password)
         {
-            var store = await _storeRepository.GetByIdAsync(storeId);
+            var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
             if (store == null)
             {
                 return new ApiResponse<Room>("المحل غير موجود", 404);
+            }
+
+            // Check if a room with the same Username exists in the same Store
+            if (await _unitOfWork.GetRepository<Room, int>().AnyAsync(r => r.Username == username && r.StoreId == storeId))
+            {
+                return new ApiResponse<Room>("اسم المستخدم موجود بالفعل في هذا المحل", 400);
             }
 
             var room = new Room
@@ -84,47 +98,62 @@ namespace System.Application.Services
                 CreatedOn = DateTime.UtcNow
             };
 
-            await _roomRepository.AddAsync(room);
+            await _unitOfWork.GetRepository<Room, int>().AddAsync(room);
+            await _unitOfWork.SaveChangesAsync();
             return new ApiResponse<Room>(room, "تم إضافة الغرفة بنجاح", 201);
         }
 
         public async Task<ApiResponse<Room>> UpdateRoomAsync(int roomId, string username, string password)
         {
-            var room = await _roomRepository.GetByIdAsync(roomId);
+            var room = await _unitOfWork.GetRepository<Room, int>().GetByIdAsync(roomId);
             if (room == null)
             {
                 return new ApiResponse<Room>("الغرفة غير موجودة", 404);
             }
 
+            // Check if another room with the same Username exists in the same Store
+            if (await _unitOfWork.GetRepository<Room, int>().AnyAsync(r => r.Username == username && r.StoreId == room.StoreId && r.Id != roomId))
+            {
+                return new ApiResponse<Room>("اسم المستخدم موجود بالفعل في هذا المحل", 400);
+            }
+
             room.Username = username;
             room.Password = password;
             room.LastModifiedOn = DateTime.UtcNow;
-            _roomRepository.Update(room);
+            _unitOfWork.GetRepository<Room, int>().Update(room);
+            await _unitOfWork.SaveChangesAsync();
 
             return new ApiResponse<Room>(room, "تم تعديل الغرفة بنجاح");
         }
 
         public async Task<ApiResponse<bool>> DeleteRoomAsync(int roomId)
         {
-            var room = await _roomRepository.GetByIdAsync(roomId);
+            var room = await _unitOfWork.GetRepository<Room, int>().GetByIdAsync(roomId);
             if (room == null)
             {
                 return new ApiResponse<bool>("الغرفة غير موجودة", 404);
             }
 
-            _roomRepository.Delete(room);
+            _unitOfWork.GetRepository<Room, int>().Delete(room);
+            await _unitOfWork.SaveChangesAsync();
             return new ApiResponse<bool>(true, "تم حذف الغرفة بنجاح");
         }
 
         public async Task<ApiResponse<List<Room>>> GetRoomsAsync(int storeId)
         {
-            var rooms = await _roomRepository.FindAsync(r => r.StoreId == storeId);
+            var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
+            if (store == null)
+                return new ApiResponse<List<Room>>("هذا المحل غير متواجد", 404);
+
+            var rooms = await _unitOfWork.GetRepository<Room, int>().FindAsync(r => r.StoreId == storeId);
+            if (!rooms.Any())
+                return new ApiResponse<List<Room>>("لا يوجد غرف لهذا المحل حاليا", 404);
             return new ApiResponse<List<Room>>(rooms.ToList());
         }
 
         public async Task<ApiResponse<PointSetting>> CreatePointSettingAsync(int storeId, decimal amountPerPoint, int points)
         {
-            var store = await _storeRepository.GetByIdAsync(storeId);
+            var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
             if (store == null)
             {
                 return new ApiResponse<PointSetting>("المحل غير موجود", 404);
@@ -138,13 +167,14 @@ namespace System.Application.Services
                 CreatedOn = DateTime.UtcNow
             };
 
-            await _pointSettingRepository.AddAsync(setting);
+            await _unitOfWork.GetRepository<PointSetting, int>().AddAsync(setting);
+            await _unitOfWork.SaveChangesAsync();
             return new ApiResponse<PointSetting>(setting, "تم إضافة إعداد النقاط بنجاح", 201);
         }
 
         public async Task<ApiResponse<PointSetting>> UpdatePointSettingAsync(int settingId, decimal amountPerPoint, int points)
         {
-            var setting = await _pointSettingRepository.GetByIdAsync(settingId);
+            var setting = await _unitOfWork.GetRepository<PointSetting, int>().GetByIdAsync(settingId);
             if (setting == null)
             {
                 return new ApiResponse<PointSetting>("إعداد النقاط غير موجود", 404);
@@ -153,32 +183,34 @@ namespace System.Application.Services
             setting.Amount = amountPerPoint;
             setting.Points = points;
             setting.LastModifiedOn = DateTime.UtcNow;
-            _pointSettingRepository.Update(setting);
+            _unitOfWork.GetRepository<PointSetting, int>().Update(setting);
+            await _unitOfWork.SaveChangesAsync();
 
             return new ApiResponse<PointSetting>(setting, "تم تعديل إعداد النقاط بنجاح");
         }
 
         public async Task<ApiResponse<bool>> DeletePointSettingAsync(int settingId)
         {
-            var setting = await _pointSettingRepository.GetByIdAsync(settingId);
+            var setting = await _unitOfWork.GetRepository<PointSetting, int>().GetByIdAsync(settingId);
             if (setting == null)
             {
                 return new ApiResponse<bool>("إعداد النقاط غير موجود", 404);
             }
 
-            _pointSettingRepository.Delete(setting);
+            _unitOfWork.GetRepository<PointSetting, int>().Delete(setting);
+            await _unitOfWork.SaveChangesAsync();
             return new ApiResponse<bool>(true, "تم حذف إعداد النقاط بنجاح");
         }
 
         public async Task<ApiResponse<List<PointSetting>>> GetPointSettingsAsync(int storeId)
         {
-            var settings = await _pointSettingRepository.FindAsync(ps => ps.StoreId == storeId);
+            var settings = await _unitOfWork.GetRepository<PointSetting, int>().FindAsync(ps => ps.StoreId == storeId);
             return new ApiResponse<List<PointSetting>>(settings.ToList());
         }
 
         public async Task<ApiResponse<int>> GetTotalStoresCountAsync()
         {
-            var count = (await _storeRepository.GetAllAsync()).Count();
+            var count = (await _unitOfWork.GetRepository<Store, int>().GetAllAsync()).Count();
             return new ApiResponse<int>(count, "تم جلب عدد المحلات بنجاح");
         }
     }

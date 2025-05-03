@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
 using System.Infrastructure;
 using System.Application;
 using System.Shared;
 using System.Infrastructure.Repositories;
 using System.Infrastructure.Unit;
 using System.Infrastructure.Data;
+using System.Text;
 
 namespace System.APIs
 {
@@ -19,12 +22,32 @@ namespace System.APIs
             builder.Services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-            builder.Services.AddControllers(); 
+            builder.Services.AddControllers();
 
             // Add Identity
             builder.Services.AddIdentity<IdentityUser, IdentityRole>()
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
+
+            // Configure JWT Authentication
+            var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!);
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                    ValidAudience = builder.Configuration["Jwt:Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(key)
+                };
+            });
 
             builder.Services.AddAuthorization();
 
@@ -54,9 +77,13 @@ namespace System.APIs
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.MapControllers(); 
+            app.MapControllers();
 
             #endregion
+
+
+
+            //******
 
             #region Seed Data
 
