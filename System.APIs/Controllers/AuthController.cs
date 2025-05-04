@@ -121,21 +121,18 @@ namespace System.APIs.Controllers
         public async Task<IActionResult> RoomLogin([FromBody] RoomLoginDto roomDto)
         {
             if (string.IsNullOrEmpty(roomDto.StoreName) || string.IsNullOrEmpty(roomDto.UserName) || string.IsNullOrEmpty(roomDto.Password))
-            {
                 return BadRequest(new ApiResponse<object>("اسم المحل، اسم المستخدم، وكلمة المرور مطلوبة", 400));
-            }
+
 
             var storesResponse = await _storeService.GetStoresAsync();
             if (!storesResponse.IsSuccess)
-            {
                 return StatusCode(storesResponse.StatusCode, storesResponse);
-            }
+
 
             var store = storesResponse.Data.FirstOrDefault(s => s.Name == roomDto.StoreName);
             if (store == null)
-            {
                 return BadRequest(new ApiResponse<object>("المحل غير موجود", 404));
-            }
+
 
             var rooms = await _unitOfWork.GetRepository<Room, int>().FindAsync(
                 r => r.StoreId == store.Id && r.Username == roomDto.UserName && r.Password == roomDto.Password);
@@ -143,16 +140,15 @@ namespace System.APIs.Controllers
             var room = rooms.FirstOrDefault();
 
             if (room == null)
-            {
                 return Unauthorized(new ApiResponse<object>("اسم المستخدم أو كلمة المرور غير صحيحة", 401));
-            }
+
 
             return Ok(new ApiResponse<object>(new
             {
                 storeId = store.Id,
                 roomId = room.Id,
                 message = "تم تسجيل الدخول بنجاح، يمكنك الآن طلب من الصفحة"
-            },"success", 200));
+            }, "success", 200));
         }
     }
 }

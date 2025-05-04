@@ -1,5 +1,6 @@
 ﻿using System.Domain.Models;
 using System.Shared;
+using System.Shared.DTOs.Assistances;
 
 namespace System.Application.Abstraction
 {
@@ -15,7 +16,7 @@ namespace System.Application.Abstraction
         Task<ApiResponse<DefaultAssistanceRequestType>> UpdateDefaultAssistanceTypeAsync(int typeId, string name);
         Task<ApiResponse<bool>> DeleteDefaultAssistanceTypeAsync(int typeId);
         Task<ApiResponse<bool>> RestoreDefaultAssistanceTypeAsync(int typeId);
-        Task<ApiResponse<List<DefaultAssistanceRequestType>>> GetDefaultAssistanceTypesAsync();
-        Task<ApiResponse<List<DefaultAssistanceRequestType>>> GetDefaultDeletedAssistanceTypesAsync();
+        Task<ApiResponse<List<AssistanceDto>>> GetDefaultAssistanceTypesAsync();
+        Task<ApiResponse<List<AssistanceDto>>> GetDefaultDeletedAssistanceTypesAsync();
     }
 }

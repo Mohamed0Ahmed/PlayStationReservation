@@ -1,7 +1,9 @@
-﻿using System.Application.Abstraction;
+﻿using Mapster;
+using System.Application.Abstraction;
 using System.Domain.Models;
 using System.Infrastructure.Unit;
 using System.Shared;
+using System.Shared.DTOs.Assistances;
 
 namespace System.Application.Services
 {
@@ -232,27 +234,30 @@ namespace System.Application.Services
         }
 
         //* Get Default Assistance Types
-        public async Task<ApiResponse<List<DefaultAssistanceRequestType>>> GetDefaultAssistanceTypesAsync()
+        public async Task<ApiResponse<List<AssistanceDto>>> GetDefaultAssistanceTypesAsync()
         {
             var defaultTypes = await _unitOfWork.GetRepository<DefaultAssistanceRequestType, int>().GetAllAsync();
 
             if (!defaultTypes.Any())
-                return new ApiResponse<List<DefaultAssistanceRequestType>>("لا يوجد أنواع مساعدة ثابتة حاليًا", 404);
+                return new ApiResponse<List<AssistanceDto>>("لا يوجد أنواع مساعدة ثابتة حاليًا", 404);
+
+            var types = defaultTypes.Adapt<List<AssistanceDto>>();
 
 
-            return new ApiResponse<List<DefaultAssistanceRequestType>>(defaultTypes.ToList(), "تم جلب أنواع المساعدة الثابتة بنجاح");
+            return new ApiResponse<List<AssistanceDto>>(types, "تم جلب أنواع المساعدة الثابتة بنجاح");
         }
 
         //* Get Default deleted Assistance Types
-        public async Task<ApiResponse<List<DefaultAssistanceRequestType>>> GetDefaultDeletedAssistanceTypesAsync()
+        public async Task<ApiResponse<List<AssistanceDto>>> GetDefaultDeletedAssistanceTypesAsync()
         {
             var defaultTypes = await _unitOfWork.GetRepository<DefaultAssistanceRequestType, int>().GetAllAsync(onlyDeleted: true);
 
             if (!defaultTypes.Any())
-                return new ApiResponse<List<DefaultAssistanceRequestType>>("لا يوجد أنواع مساعدة محذوفة حاليًا", 404);
+                return new ApiResponse<List<AssistanceDto>>("لا يوجد أنواع مساعدة محذوفة حاليًا", 404);
 
+            var types = defaultTypes.Adapt<List<AssistanceDto>>();
 
-            return new ApiResponse<List<DefaultAssistanceRequestType>>(defaultTypes.ToList(), "تم جلب أنواع المساعدة المحذوفة بنجاح");
+            return new ApiResponse<List<AssistanceDto>>(types, "تم جلب أنواع المساعدة المحذوفة بنجاح");
         }
 
         #endregion
