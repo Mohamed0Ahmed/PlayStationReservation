@@ -1,6 +1,6 @@
-﻿namespace System.Shared.DTOs
+﻿namespace System.Shared.DTOs.Stores
 {
-    public class CreateStoreRequest
+    public class StoreDto
     {
         public string Name { get; set; }
         public string OwnerEmail { get; set; }

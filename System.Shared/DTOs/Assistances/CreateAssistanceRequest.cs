@@ -1,4 +1,4 @@
-﻿namespace System.Shared.DTOs
+﻿namespace System.Shared.DTOs.Assistances
 {
     public class CreateAssistanceRequest
     {

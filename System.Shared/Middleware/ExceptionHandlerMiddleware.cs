@@ -4,7 +4,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using System.Shared.Exceptions;
 
-namespace System.Shared
+namespace System.Shared.Middleware
 {
     public class ExceptionHandlerMiddleware
     {

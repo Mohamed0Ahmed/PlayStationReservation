@@ -1,4 +1,4 @@
-﻿namespace System.Shared.DTOs
+﻿namespace System.Shared.DTOs.Gifts
 {
     public class CreateGiftRequest
     {

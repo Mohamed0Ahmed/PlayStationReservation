@@ -27,6 +27,15 @@ namespace System.APIs.Controllers
             var response = await _assistanceRequestTypeService.GetDefaultAssistanceTypesAsync();
             return StatusCode(response.StatusCode, response);
         }
+        
+        //* Get Default Deleted Assistance Types
+        [Authorize(Roles = "Admin")]
+        [HttpGet("default/deleted")]
+        public async Task<IActionResult> GetDefaultDeletedAssistanceTypes()
+        {
+            var response = await _assistanceRequestTypeService.GetDefaultDeletedAssistanceTypesAsync();
+            return StatusCode(response.StatusCode, response);
+        }
 
         //* Create Default Assistance Type
         [Authorize(Roles = "Admin")]

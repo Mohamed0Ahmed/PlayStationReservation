@@ -6,9 +6,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Shared;
-using System.Shared.DTOs;
 using System.Infrastructure.Unit;
 using System.Domain.Models;
+using System.Shared.DTOs.Login;
 
 namespace System.APIs.Controllers
 {

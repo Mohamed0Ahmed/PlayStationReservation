@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Application.Abstraction;
 using System.Domain.Models;
 using System.Shared;
-using System.Shared.DTOs;
+using System.Shared.DTOs.Menu;
 
 namespace System.APIs.Controllers
 {

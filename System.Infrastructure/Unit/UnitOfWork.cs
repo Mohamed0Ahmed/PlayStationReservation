@@ -54,7 +54,7 @@ namespace System.Infrastructure.Unit
             finally
             {
                 _transaction.Dispose();
-                _transaction = null;
+                _transaction = null!;
             }
         }
 
@@ -69,7 +69,7 @@ namespace System.Infrastructure.Unit
             finally
             {
                 _transaction.Dispose();
-                _transaction = null;
+                _transaction = null!;
             }
         }
 
@@ -84,7 +84,7 @@ namespace System.Infrastructure.Unit
                         if (_transaction != null)
                         {
                             _transaction.Dispose();
-                            _transaction = null;
+                            _transaction = null!;
                         }
                         _context.Dispose();
                     }

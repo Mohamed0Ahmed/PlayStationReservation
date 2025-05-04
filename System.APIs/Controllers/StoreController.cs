@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Application.Abstraction;
 using System.Domain.Models;
 using System.Shared;
-using System.Shared.DTOs;
+using System.Shared.DTOs.Rooms;
+using System.Shared.DTOs.Stores;
 
 namespace System.APIs.Controllers
 {
@@ -23,7 +24,7 @@ namespace System.APIs.Controllers
 
         //* Create Store
         [HttpPost]
-        public async Task<IActionResult> CreateStore([FromBody] CreateStoreRequest request)
+        public async Task<IActionResult> CreateStore([FromBody] StoreDto request)
         {
             var response = await _storeService.CreateStoreAsync(request.Name, request.OwnerEmail);
             return StatusCode(response.StatusCode, response);
@@ -31,7 +32,7 @@ namespace System.APIs.Controllers
 
         //* Update Store
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateStore(int id, [FromBody] UpdateStoreRequest request)
+        public async Task<IActionResult> UpdateStore(int id, [FromBody] StoreDto request)
         {
             var response = await _storeService.UpdateStoreAsync(id, request.Name, request.OwnerEmail);
             return StatusCode(response.StatusCode, response);
@@ -74,15 +75,15 @@ namespace System.APIs.Controllers
         #region Rooms
 
         //* Create Room
-        [HttpPost("{storeId}/rooms")]
-        public async Task<IActionResult> CreateRoom(int storeId, [FromBody] CreateRoomRequest request)
+        [HttpPost("addRoom")]
+        public async Task<IActionResult> CreateRoom([FromBody] CreateRoomRequest request)
         {
             if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
             {
                 return BadRequest(new ApiResponse<Room>("اسم المستخدم وكلمة المرور مطلوبين", 400));
             }
 
-            var response = await _storeService.CreateRoomAsync(storeId, request.Username, request.Password);
+            var response = await _storeService.CreateRoomAsync(request.StoreId, request.Username, request.Password);
             return StatusCode(response.StatusCode, response);
         }
 
@@ -116,7 +117,7 @@ namespace System.APIs.Controllers
         }
 
         //* Get Rooms
-        [Authorize(Roles = "Owner")]
+        [Authorize(Roles = "Admin,Owner")]
         [HttpGet("{storeId}/rooms")]
         public async Task<IActionResult> GetRooms(int storeId)
         {

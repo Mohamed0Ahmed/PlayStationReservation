@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Application.Abstraction;
-using System.Shared.DTOs;
+using System.Shared.DTOs.Assistances;
 
 namespace System.APIs.Controllers
 {

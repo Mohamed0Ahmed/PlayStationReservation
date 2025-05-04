@@ -20,7 +20,7 @@
             IsSuccess = false;
             StatusCode = statusCode;
             Message = errorMessage;
-            Data = default;
+            Data = default!;
         }
     }
 }

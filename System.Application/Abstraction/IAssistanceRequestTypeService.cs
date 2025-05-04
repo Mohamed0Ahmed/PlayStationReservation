@@ -16,5 +16,6 @@ namespace System.Application.Abstraction
         Task<ApiResponse<bool>> DeleteDefaultAssistanceTypeAsync(int typeId);
         Task<ApiResponse<bool>> RestoreDefaultAssistanceTypeAsync(int typeId);
         Task<ApiResponse<List<DefaultAssistanceRequestType>>> GetDefaultAssistanceTypesAsync();
+        Task<ApiResponse<List<DefaultAssistanceRequestType>>> GetDefaultDeletedAssistanceTypesAsync();
     }
 }

@@ -43,7 +43,7 @@ namespace System.Application.Services
         }
 
         //* Send Order Status Update
-        public async Task<ApiResponse<bool>> SendOrderStatusUpdateAsync(int roomId, bool isApproved, string rejectionReason = null)
+        public async Task<ApiResponse<bool>> SendOrderStatusUpdateAsync(int roomId, bool isApproved, string rejectionReason = null!)
         {
             var message = isApproved
                 ? "تم الموافقة على طلبك"
@@ -53,7 +53,7 @@ namespace System.Application.Services
         }
 
         //* Send Assistance Request Status Update
-        public async Task<ApiResponse<bool>> SendAssistanceRequestStatusUpdateAsync(int roomId, bool isApproved, string rejectionReason = null)
+        public async Task<ApiResponse<bool>> SendAssistanceRequestStatusUpdateAsync(int roomId, bool isApproved, string rejectionReason = null!)
         {
             var message = isApproved
                 ? "تم الموافقة على طلب المساعدة الخاص بك"
@@ -63,7 +63,7 @@ namespace System.Application.Services
         }
 
         //* Send Gift Redemption Status Update
-        public async Task<ApiResponse<bool>> SendGiftRedemptionStatusUpdateAsync(int roomId, bool isApproved, string rejectionReason = null)
+        public async Task<ApiResponse<bool>> SendGiftRedemptionStatusUpdateAsync(int roomId, bool isApproved, string rejectionReason = null!)
         {
             var message = isApproved
                 ? "تم الموافقة على طلب استبدال الهدية الخاص بك"
