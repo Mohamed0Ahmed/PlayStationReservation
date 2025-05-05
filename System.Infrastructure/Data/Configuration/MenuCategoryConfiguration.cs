@@ -12,7 +12,7 @@ namespace System.Infrastructure.Data.Configuration
                 .IsRequired()
                 .HasMaxLength(100);
 
-            builder.HasOne(mc => mc.Store)
+            builder.HasOne<Store>()
                 .WithMany(s => s.MenuCategories)
                 .HasForeignKey(mc => mc.StoreId);
 

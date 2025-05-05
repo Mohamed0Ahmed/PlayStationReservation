@@ -13,8 +13,14 @@ namespace System.Infrastructure.Repositories
         Task<IEnumerable<T>> FindWithIncludesAsync(Expression<Func<T, bool>> predicate, bool includeDeleted = false, bool onlyDeleted = false, Func<IQueryable<T>, IQueryable<T>>? include = null);
         Task<bool> AnyAsync(Expression<Func<T, bool>>? predicate = null, bool includeDeleted = false, bool onlyDeleted = false);
         Task AddAsync(T entity);
+        Task AddRangeAsync(IEnumerable<T> entities);            
         void Update(T entity);
+        void UpdateRange(IEnumerable<T> entities);            
         void Delete(T entity);
+        void DeleteRange(IEnumerable<T> entities);             
         Task RestoreAsync(TKey id);
+        void RestoreRange(IEnumerable<T> entities);
+
     }
+
 }

@@ -8,6 +8,8 @@ using System.Infrastructure.Repositories;
 using System.Infrastructure.Unit;
 using System.Infrastructure.Data;
 using System.Text;
+using System.Shared.Middleware;
+
 
 namespace System.APIs
 {
@@ -70,6 +72,7 @@ namespace System.APIs
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+            app.UseExceptionHandlerMiddleware();
 
             app.MapHub<NotificationHub>("/notificationHub");
 

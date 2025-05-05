@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Application.Abstraction;
-using System.Domain.Models;
-using System.Shared;
 using System.Shared.DTOs.Menu;
 
 namespace System.APIs.Controllers
@@ -21,9 +19,18 @@ namespace System.APIs.Controllers
 
         #region Categories
 
+        //* Get Categories
+        [HttpGet("categories/{storeId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetCategories(int storeId)
+        {
+            var response = await _menuService.GetCategoriesAsync(storeId);
+            return StatusCode(response.StatusCode, response);
+        }
+
         //* Create Category
         [HttpPost("categories")]
-        public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryRequest request)
+        public async Task<IActionResult> CreateCategory([FromBody] CategoryDto request)
         {
             var response = await _menuService.CreateCategoryAsync(request.Name, request.StoreId);
             return StatusCode(response.StatusCode, response);
@@ -53,21 +60,22 @@ namespace System.APIs.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
-        //* Get Categories
-        [HttpGet("categories/{storeId}")]
-        public async Task<IActionResult> GetCategories(int storeId)
-        {
-            var response = await _menuService.GetCategoriesAsync(storeId);
-            return StatusCode(response.StatusCode, response);
-        }
-
         #endregion
 
         #region Menu Items
 
+        //* Get Total Items Count
+        [AllowAnonymous]
+        [HttpGet("items/all/{storeId}")]
+        public async Task<IActionResult> GetAllItemsForStore(int storeId)
+        {
+            var response = await _menuService.GetAllItemsAsync(storeId);
+            return StatusCode(response.StatusCode, response);
+        }
+
         //* Create Item
         [HttpPost("items")]
-        public async Task<IActionResult> CreateItem([FromBody] CreateMenuItemRequest request)
+        public async Task<IActionResult> CreateItem([FromBody] ItemDto request)
         {
             var response = await _menuService.CreateItemAsync(request.Name, request.Price, request.PointsRequired, request.CategoryId);
             return StatusCode(response.StatusCode, response);
@@ -99,17 +107,10 @@ namespace System.APIs.Controllers
 
         //* Get Items
         [HttpGet("items/{categoryId}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetItems(int categoryId)
         {
             var response = await _menuService.GetItemsAsync(categoryId);
-            return StatusCode(response.StatusCode, response);
-        }
-
-        //* Get Total Items Count
-        [HttpGet("items/count/{storeId}")]
-        public async Task<IActionResult> GetTotalItemsCount(int storeId)
-        {
-            var response = await _menuService.GetTotalItemsCountAsync(storeId);
             return StatusCode(response.StatusCode, response);
         }
 

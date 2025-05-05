@@ -25,13 +25,13 @@ namespace System.Application.Services
         {
             if (roomId <= 0 || requestTypeId <= 0)
                 return new ApiResponse<AssistanceRequest>("مفيش غرفة او مساعدة بالاي دي ده", 400);
-            
+
 
             var room = await _unitOfWork.GetRepository<Room, int>().GetByIdAsync(roomId);
 
             if (room == null)
                 return new ApiResponse<AssistanceRequest>("الغرفة غير موجودة", 404);
-            
+
 
             // التحقق من نوع المساعدة (Custom أو Default)
             var customType = await _unitOfWork.GetRepository<AssistanceRequestType, int>().GetByIdAsync(requestTypeId);
@@ -47,7 +47,7 @@ namespace System.Application.Services
             {
                 RoomId = roomId,
                 RequestTypeId = requestTypeId,
-                Status = AssistanceRequestStatus.Pending,
+                Status = Status.Pending,
                 RequestDate = DateTime.UtcNow,
                 CreatedOn = DateTime.UtcNow
             };
@@ -64,14 +64,14 @@ namespace System.Application.Services
         {
             if (storeId <= 0)
                 return new ApiResponse<List<AssistanceRequest>>("المحل ده مش موجود", 400);
-            
+
 
             var requests = await _unitOfWork.GetRepository<AssistanceRequest, int>().FindAsync(
-                predicate: ar => ar.RequestType.StoreId == storeId && ar.Status == AssistanceRequestStatus.Pending);
+                predicate: ar => ar.RequestType.StoreId == storeId && ar.Status == Status.Pending);
 
             if (!requests.Any())
                 return new ApiResponse<List<AssistanceRequest>>("لا يوجد طلبات مساعدة حاليا", 404);
-            
+
 
             return new ApiResponse<List<AssistanceRequest>>(requests.ToList(), "المساعدات المطلوبة حاليا");
         }
@@ -81,7 +81,7 @@ namespace System.Application.Services
         {
             if (storeId <= 0)
                 return new ApiResponse<List<AssistanceRequest>>("المحل ده مش موجود", 400);
-            
+
 
             var requests = await _unitOfWork.GetRepository<AssistanceRequest, int>().FindWithIncludesAsync(
                 predicate: ar => ar.RequestType.StoreId == storeId,
@@ -90,7 +90,7 @@ namespace System.Application.Services
 
             if (!requests.Any())
                 return new ApiResponse<List<AssistanceRequest>>("لا يوجد طلبات مساعدة", 404);
-            
+
 
             return new ApiResponse<List<AssistanceRequest>>(requests.ToList(), "تم جلب طلبات المساعدة بنجاح");
         }
@@ -100,21 +100,21 @@ namespace System.Application.Services
         {
             if (requestId <= 0)
                 return new ApiResponse<AssistanceRequest>("ادخل البيانات بشكل صحيح", 400);
-            
+
 
             var request = await _unitOfWork.GetRepository<AssistanceRequest, int>().GetByIdWithIncludesAsync(
                 requestId, include: q => q.Include(ar => ar.Room));
 
             if (request == null)
                 return new ApiResponse<AssistanceRequest>("طلب المساعدة غير موجود", 404);
-            
 
-            if (request.Status != AssistanceRequestStatus.Pending)
+
+            if (request.Status != Status.Pending)
                 return new ApiResponse<AssistanceRequest>("لا يمكن الموافقة على طلب غير معلق", 400);
 
 
 
-            request.Status = AssistanceRequestStatus.Accepted;
+            request.Status = Status.Accepted;
             request.LastModifiedOn = DateTime.UtcNow;
             _unitOfWork.GetRepository<AssistanceRequest, int>().Update(request);
             await _unitOfWork.SaveChangesAsync();
@@ -128,22 +128,22 @@ namespace System.Application.Services
         {
             if (requestId <= 0)
                 return new ApiResponse<AssistanceRequest>("ادخل البيانات بشكل صحيح", 400);
-            
+
 
             if (string.IsNullOrEmpty(rejectionReason))
                 return new ApiResponse<AssistanceRequest>("سبب الرفض مطلوب", 400);
-            
 
-            var request = await _unitOfWork.GetRepository<AssistanceRequest, int>().GetByIdAsync( requestId);
+
+            var request = await _unitOfWork.GetRepository<AssistanceRequest, int>().GetByIdAsync(requestId);
             if (request == null)
                 return new ApiResponse<AssistanceRequest>("طلب المساعدة غير موجود", 404);
-            
 
-            if (request.Status != AssistanceRequestStatus.Pending)
+
+            if (request.Status != Status.Pending)
                 return new ApiResponse<AssistanceRequest>("لا يمكن رفض طلب غير معلق", 400);
-            
 
-            request.Status = AssistanceRequestStatus.Rejected;
+
+            request.Status = Status.Rejected;
             request.RejectionReason = rejectionReason;
             request.LastModifiedOn = DateTime.UtcNow;
             _unitOfWork.GetRepository<AssistanceRequest, int>().Update(request);

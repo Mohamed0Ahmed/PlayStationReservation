@@ -11,7 +11,7 @@ namespace System.Domain.Models
         public Room Room { get; set; }
         public int RequestTypeId { get; set; }
         public AssistanceRequestType RequestType { get; set; }
-        public AssistanceRequestStatus Status { get; set; }
+        public Status Status { get; set; }
         public string RejectionReason { get; set; } = string.Empty;
         public DateTime RequestDate { get; set; }
     }

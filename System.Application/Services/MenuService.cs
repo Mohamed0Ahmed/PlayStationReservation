@@ -1,8 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Mapster;
 using System.Application.Abstraction;
 using System.Domain.Models;
 using System.Infrastructure.Unit;
 using System.Shared;
+using System.Shared.DTOs.Menu;
 
 namespace System.Application.Services
 {
@@ -18,13 +19,17 @@ namespace System.Application.Services
         #region Categories
 
         //* Create Category
-        public async Task<ApiResponse<Category>> CreateCategoryAsync(string name, int storeId)
+        public async Task<ApiResponse<CategoryDto>> CreateCategoryAsync(string name, int storeId)
         {
+            var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
+            if (store == null)
+                return new ApiResponse<CategoryDto>("No Store With This ID", 400);
+
 
             var existingCategory = await _unitOfWork.GetRepository<Category, int>().FindAsync(
                 c => c.Name == name && c.StoreId == storeId);
-            if (existingCategory != null)
-                return new ApiResponse<Category>("القسم موجود بالفعل", 400);
+            if (existingCategory.Any())
+                return new ApiResponse<CategoryDto>("القسم موجود بالفعل", 400);
 
 
             var category = new Category
@@ -37,22 +42,23 @@ namespace System.Application.Services
             await _unitOfWork.GetRepository<Category, int>().AddAsync(category);
             await _unitOfWork.SaveChangesAsync();
 
-            return new ApiResponse<Category>(category, "تم إضافة القسم بنجاح", 201);
+            var categoryDto = category.Adapt<CategoryDto>();
+            return new ApiResponse<CategoryDto>(categoryDto, "تم إضافة القسم بنجاح", 201);
         }
 
         //* Update Category
-        public async Task<ApiResponse<Category>> UpdateCategoryAsync(int categoryId, string name)
+        public async Task<ApiResponse<CategoryDto>> UpdateCategoryAsync(int categoryId, string name)
         {
 
             var category = await _unitOfWork.GetRepository<Category, int>().GetByIdAsync(categoryId);
             if (category == null)
-                return new ApiResponse<Category>("القسم غير موجود", 404);
+                return new ApiResponse<CategoryDto>("القسم غير موجود", 404);
 
 
             var existingCategory = await _unitOfWork.GetRepository<Category, int>().FindAsync(
                 c => c.Name == name && c.StoreId == category.StoreId && c.Id != categoryId);
-            if (existingCategory != null)
-                return new ApiResponse<Category>("اسم القسم موجود بالفعل", 400);
+            if (existingCategory.Any())
+                return new ApiResponse<CategoryDto>("اسم القسم موجود بالفعل", 400);
 
 
             category.Name = name;
@@ -60,7 +66,8 @@ namespace System.Application.Services
             _unitOfWork.GetRepository<Category, int>().Update(category);
             await _unitOfWork.SaveChangesAsync();
 
-            return new ApiResponse<Category>(category, "تم تعديل القسم بنجاح");
+            var categoryDto = category.Adapt<CategoryDto>();
+            return new ApiResponse<CategoryDto>(categoryDto, "تم تعديل القسم بنجاح");
         }
 
         //* Delete Category
@@ -71,8 +78,11 @@ namespace System.Application.Services
             if (category == null)
                 return new ApiResponse<bool>("القسم غير موجود", 404);
 
+            var items = await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(i => i.CategoryId == categoryId);
 
             _unitOfWork.GetRepository<Category, int>().Delete(category);
+            _unitOfWork.GetRepository<MenuItem, int>().DeleteRange(items);
+
             await _unitOfWork.SaveChangesAsync();
 
             return new ApiResponse<bool>(true, "تم حذف القسم بنجاح");
@@ -85,25 +95,31 @@ namespace System.Application.Services
             if (category == null || !category.IsDeleted)
                 return new ApiResponse<bool>("القسم غير موجود أو غير محذوف", 404);
 
+            var items = await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(i => i.CategoryId == categoryId);
+
 
             await _unitOfWork.GetRepository<Category, int>().RestoreAsync(categoryId);
+            _unitOfWork.GetRepository<MenuItem, int>().RestoreRange(items);
+
             await _unitOfWork.SaveChangesAsync();
 
             return new ApiResponse<bool>(true, "تم استرجاع القسم بنجاح");
         }
 
         //* Get Categories
-        public async Task<ApiResponse<List<Category>>> GetCategoriesAsync(int storeId)
+        public async Task<ApiResponse<List<CategoryDto>>> GetCategoriesAsync(int storeId)
         {
+            var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
+            if (store == null)
+                return new ApiResponse<List<CategoryDto>>("No Store To Get Categories", 404);
 
 
             var categories = await _unitOfWork.GetRepository<Category, int>().FindAsync(c => c.StoreId == storeId);
-
             if (!categories.Any())
-                return new ApiResponse<List<Category>>("لا يوجد أقسام", 404);
+                return new ApiResponse<List<CategoryDto>>("لا يوجد أقسام", 404);
 
-
-            return new ApiResponse<List<Category>>(categories.ToList(), "تم جلب الأقسام بنجاح");
+            var categoriesDto = categories.Adapt<List<CategoryDto>>();
+            return new ApiResponse<List<CategoryDto>>(categoriesDto, "تم جلب الأقسام بنجاح");
         }
 
         #endregion
@@ -111,21 +127,17 @@ namespace System.Application.Services
         #region Menu Items
 
         //* Create Item
-        public async Task<ApiResponse<MenuItem>> CreateItemAsync(string name, decimal price, int pointsRequired, int categoryId)
+        public async Task<ApiResponse<ItemDto>> CreateItemAsync(string name, decimal price, int pointsRequired, int categoryId)
         {
-            if (string.IsNullOrEmpty(name) || price <= 0 || pointsRequired < 0 || categoryId <= 0)
-                return new ApiResponse<MenuItem>("اسم الصنف، السعر، النقاط المطلوبة يجب أن يكونوا صالحين", 400);
-
-
             var category = await _unitOfWork.GetRepository<Category, int>().GetByIdAsync(categoryId);
             if (category == null)
-                return new ApiResponse<MenuItem>("القسم غير موجود", 404);
+                return new ApiResponse<ItemDto>("القسم غير موجود", 404);
 
 
             var existingItem = await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(
-                mi => mi.Name == name && mi.MenuCategoryId == categoryId);
-            if (existingItem != null)
-                return new ApiResponse<MenuItem>("الصنف موجود بالفعل", 400);
+                mi => mi.Name == name && mi.CategoryId == categoryId);
+            if (existingItem.Any())
+                return new ApiResponse<ItemDto>("الصنف موجود بالفعل", 400);
 
 
             var item = new MenuItem
@@ -133,32 +145,34 @@ namespace System.Application.Services
                 Name = name,
                 Price = price,
                 PointsRequired = pointsRequired,
-                MenuCategoryId = categoryId,
+                CategoryId = categoryId,
+                StoreId = category.StoreId,
                 CreatedOn = DateTime.UtcNow
             };
 
             await _unitOfWork.GetRepository<MenuItem, int>().AddAsync(item);
             await _unitOfWork.SaveChangesAsync();
 
-            return new ApiResponse<MenuItem>(item, "تم إضافة الصنف بنجاح", 201);
+            var itemDto = item.Adapt<ItemDto>();
+            return new ApiResponse<ItemDto>(itemDto, "تم إضافة الصنف بنجاح", 201);
         }
 
         //* Update Item
-        public async Task<ApiResponse<MenuItem>> UpdateItemAsync(int itemId, string name, decimal price, int pointsRequired)
+        public async Task<ApiResponse<ItemDto>> UpdateItemAsync(int itemId, string name, decimal price, int pointsRequired)
         {
             if (itemId <= 0 || string.IsNullOrEmpty(name) || price <= 0 || pointsRequired < 0)
-                return new ApiResponse<MenuItem>(" اسم الصنف، السعر، والنقاط المطلوبة يجب أن يكونوا صالحين", 400);
+                return new ApiResponse<ItemDto>(" اسم الصنف، السعر، والنقاط المطلوبة يجب أن يكونوا صالحين", 400);
 
 
             var item = await _unitOfWork.GetRepository<MenuItem, int>().GetByIdAsync(itemId);
             if (item == null)
-                return new ApiResponse<MenuItem>("الصنف غير موجود", 404);
+                return new ApiResponse<ItemDto>("الصنف غير موجود", 404);
 
 
             var existingItem = await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(
-                mi => mi.Name == name && mi.MenuCategoryId == item.MenuCategoryId && mi.Id != itemId);
-            if (existingItem != null)
-                return new ApiResponse<MenuItem>("اسم الصنف موجود بالفعل", 400);
+                mi => mi.Name == name && mi.CategoryId == item.CategoryId && mi.Id != itemId);
+            if (existingItem.Any())
+                return new ApiResponse<ItemDto>("اسم الصنف موجود بالفعل", 400);
 
 
             item.Name = name;
@@ -167,8 +181,8 @@ namespace System.Application.Services
             item.LastModifiedOn = DateTime.UtcNow;
             _unitOfWork.GetRepository<MenuItem, int>().Update(item);
             await _unitOfWork.SaveChangesAsync();
-
-            return new ApiResponse<MenuItem>(item, "تم تعديل الصنف بنجاح");
+            var itemDto = item.Adapt<ItemDto>();
+            return new ApiResponse<ItemDto>(itemDto, "تم تعديل الصنف بنجاح");
         }
 
         //* Delete Item
@@ -200,26 +214,30 @@ namespace System.Application.Services
         }
 
         //* Get Items
-        public async Task<ApiResponse<List<MenuItem>>> GetItemsAsync(int categoryId)
+        public async Task<ApiResponse<List<ItemDto>>> GetItemsAsync(int categoryId)
         {
-            var items = await _unitOfWork.GetRepository<MenuItem, int>().FindWithIncludesAsync(
-                predicate: mi => mi.MenuCategoryId == categoryId,
-                include: q => q.Include(mi => mi.Category));
+            var category = await _unitOfWork.GetRepository<Category, int>().FindAsync(c => c.Id == categoryId);
+            if (!category.Any())
+                return new ApiResponse<List<ItemDto>>("هذا القسم غير موجود", 404);
+
+
+            var items = await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(i => i.CategoryId == categoryId);
 
             if (!items.Any())
-                return new ApiResponse<List<MenuItem>>("لا يوجد أصناف", 404);
+                return new ApiResponse<List<ItemDto>>("لا يوجد أصناف", 404);
 
-            return new ApiResponse<List<MenuItem>>(items.ToList(), "تم جلب الأصناف بنجاح");
+            var itemsDto = items.Adapt<List<ItemDto>>();
+            return new ApiResponse<List<ItemDto>>(itemsDto, "تم جلب الأصناف بنجاح");
         }
 
         //* Get Total Items Count
-        public async Task<ApiResponse<int>> GetTotalItemsCountAsync(int storeId)
+        public async Task<ApiResponse<List<ItemDto>>> GetAllItemsAsync(int storeId)
         {
-            var count = (await _unitOfWork.GetRepository<MenuItem, int>().FindWithIncludesAsync(
-                mi => mi.Category.StoreId == storeId,
-                include: q => q.Include(mi => mi.Category))).Count();
+            var items = (await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(
+                mi => mi.StoreId == storeId)).Count();
 
-            return new ApiResponse<int>(count, "تم جلب عدد الأصناف بنجاح");
+            var itemsDto = items.Adapt<List<ItemDto>>();
+            return new ApiResponse<List<ItemDto>>(itemsDto, "تم جلب كل الأصناف بنجاح");
         }
 
         #endregion

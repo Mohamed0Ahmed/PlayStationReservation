@@ -102,6 +102,33 @@ namespace System.Infrastructure.Repositories
             _dbSet.Update(entity);
         }
 
+        public async Task AddRangeAsync(IEnumerable<T> entities)
+        {
+            await _dbSet.AddRangeAsync(entities);
+        }
+
+        public void UpdateRange(IEnumerable<T> entities)
+        {
+            foreach (var entity in entities)
+            {
+                entity.LastModifiedOn = DateTime.UtcNow;
+            }
+
+            _dbSet.UpdateRange(entities);
+        }
+
+        public void DeleteRange(IEnumerable<T> entities)
+        {
+            foreach (var entity in entities)
+            {
+                entity.IsDeleted = true;
+                entity.DeletedOn = DateTime.UtcNow;
+                entity.LastModifiedOn = DateTime.UtcNow;
+            }
+
+            _dbSet.UpdateRange(entities);
+        }
+
         public async Task RestoreAsync(TKey id)
         {
             var entity = await GetByIdAsync(id, includeDeleted: true, onlyDeleted: true);
@@ -112,6 +139,17 @@ namespace System.Infrastructure.Repositories
                 entity.LastModifiedOn = DateTime.UtcNow;
                 _dbSet.Update(entity);
             }
+        }
+        public void RestoreRange(IEnumerable<T> entities)
+        {
+            foreach (var entity in entities)
+            {
+                entity.IsDeleted = false;
+                entity.DeletedOn = null;
+                entity.LastModifiedOn = DateTime.UtcNow;
+            }
+
+            _dbSet.UpdateRange(entities);
         }
     }
 }

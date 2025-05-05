@@ -20,12 +20,12 @@ namespace System.Infrastructure.Data.Configuration
                 .IsRequired();
 
 
-            builder.HasOne(mi => mi.Category)
+            builder.HasOne<Category>()
                 .WithMany(mc => mc.MenuItems)
-                .HasForeignKey(mi => mi.MenuCategoryId);
+                .HasForeignKey(mi => mi.CategoryId);
 
 
-            builder.HasIndex(mi => new { mi.Name, mi.MenuCategoryId })
+            builder.HasIndex(mi => new { mi.Name, mi.CategoryId })
                 .IsUnique();
         }
     }
