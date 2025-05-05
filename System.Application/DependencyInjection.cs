@@ -15,10 +15,9 @@ namespace System.Application
             services.AddScoped<ICustomerService, CustomerService>();
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<IMenuService, MenuService>();
-            services.AddScoped<IAssistanceRequestService, AssistanceRequestService>();
+            services.AddScoped<IRequestService, RequestService>();
             services.AddScoped<INotificationService, NotificationService>();
             services.AddScoped<IGiftService, GiftService>();
-            services.AddScoped<IGiftRedemptionService, GiftRedemptionService>();
             services.AddScoped<IAssistanceRequestTypeService, AssistanceRequestTypeService>();
 
             return services;

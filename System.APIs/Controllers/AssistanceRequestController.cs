@@ -9,9 +9,9 @@ namespace System.APIs.Controllers
     [ApiController]
     public class AssistanceRequestController : ControllerBase
     {
-        private readonly IAssistanceRequestService _assistanceRequestService;
+        private readonly IRequestService _assistanceRequestService;
 
-        public AssistanceRequestController(IAssistanceRequestService assistanceRequestService)
+        public AssistanceRequestController(IRequestService assistanceRequestService)
         {
             _assistanceRequestService = assistanceRequestService;
         }

@@ -4,6 +4,7 @@ using System.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace System.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250505135200_Addseed")]
+    partial class Addseed
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -278,7 +281,7 @@ namespace System.Infrastructure.Migrations
 
                     b.HasIndex("RoomId");
 
-                    b.ToTable("AssistanceRequests", (string)null);
+                    b.ToTable("AssistanceRequests");
                 });
 
             modelBuilder.Entity("System.Domain.Models.AssistanceRequestType", b =>
@@ -325,7 +328,7 @@ namespace System.Infrastructure.Migrations
                     b.HasIndex("Name", "StoreId")
                         .IsUnique();
 
-                    b.ToTable("AssistanceRequestTypes", (string)null);
+                    b.ToTable("AssistanceRequestTypes");
                 });
 
             modelBuilder.Entity("System.Domain.Models.Category", b =>
@@ -372,7 +375,7 @@ namespace System.Infrastructure.Migrations
                     b.HasIndex("Name", "StoreId")
                         .IsUnique();
 
-                    b.ToTable("MenuCategories", (string)null);
+                    b.ToTable("MenuCategories");
                 });
 
             modelBuilder.Entity("System.Domain.Models.Customer", b =>
@@ -424,7 +427,7 @@ namespace System.Infrastructure.Migrations
                     b.HasIndex("PhoneNumber", "StoreId")
                         .IsUnique();
 
-                    b.ToTable("Customers", (string)null);
+                    b.ToTable("Customers");
                 });
 
             modelBuilder.Entity("System.Domain.Models.DefaultAssistanceRequestType", b =>
@@ -462,7 +465,7 @@ namespace System.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DefaultAssistance", (string)null);
+                    b.ToTable("DefaultAssistance");
                 });
 
             modelBuilder.Entity("System.Domain.Models.Gift", b =>
@@ -512,7 +515,7 @@ namespace System.Infrastructure.Migrations
                     b.HasIndex("Name", "StoreId")
                         .IsUnique();
 
-                    b.ToTable("Gifts", (string)null);
+                    b.ToTable("Gifts");
                 });
 
             modelBuilder.Entity("System.Domain.Models.GiftRedemption", b =>
@@ -568,7 +571,7 @@ namespace System.Infrastructure.Migrations
 
                     b.HasIndex("GiftId");
 
-                    b.ToTable("GiftRedemptions", (string)null);
+                    b.ToTable("GiftRedemptions");
                 });
 
             modelBuilder.Entity("System.Domain.Models.MenuItem", b =>
@@ -625,7 +628,7 @@ namespace System.Infrastructure.Migrations
                     b.HasIndex("Name", "CategoryId")
                         .IsUnique();
 
-                    b.ToTable("MenuItems", (string)null);
+                    b.ToTable("MenuItems");
                 });
 
             modelBuilder.Entity("System.Domain.Models.Order", b =>
@@ -693,7 +696,7 @@ namespace System.Infrastructure.Migrations
 
                     b.HasIndex("RoomId");
 
-                    b.ToTable("Orders", (string)null);
+                    b.ToTable("Orders");
                 });
 
             modelBuilder.Entity("System.Domain.Models.OrderItem", b =>
@@ -737,7 +740,7 @@ namespace System.Infrastructure.Migrations
 
                     b.HasIndex("MenuItemId");
 
-                    b.ToTable("OrderItems", (string)null);
+                    b.ToTable("OrderItems");
                 });
 
             modelBuilder.Entity("System.Domain.Models.PointSetting", b =>
@@ -783,7 +786,7 @@ namespace System.Infrastructure.Migrations
 
                     b.HasIndex("StoreId");
 
-                    b.ToTable("PointSettings", (string)null);
+                    b.ToTable("PointSettings");
                 });
 
             modelBuilder.Entity("System.Domain.Models.Room", b =>
@@ -835,7 +838,7 @@ namespace System.Infrastructure.Migrations
                     b.HasIndex("Username", "StoreId")
                         .IsUnique();
 
-                    b.ToTable("Rooms", (string)null);
+                    b.ToTable("Rooms");
                 });
 
             modelBuilder.Entity("System.Domain.Models.Store", b =>
@@ -882,7 +885,7 @@ namespace System.Infrastructure.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Stores", (string)null);
+                    b.ToTable("Stores");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

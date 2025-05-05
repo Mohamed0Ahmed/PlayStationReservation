@@ -11,6 +11,5 @@ namespace System.Application.Abstraction
         Task<ApiResponse<bool>> RestoreGiftAsync(int giftId);
         Task<ApiResponse<List<Gift>>> GetGiftsAsync(int storeId);
         Task<ApiResponse<int>> GetTotalGiftsCountAsync(int storeId);
-        Task<ApiResponse<int>> GetMostRequestedGiftCountAsync(int storeId);
     }
 }

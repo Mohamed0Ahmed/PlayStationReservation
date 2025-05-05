@@ -116,7 +116,6 @@ namespace System.APIs.Controllers
             });
         }
 
-        // Login for Room (for Customer)
         [HttpPost("room/login")]
         public async Task<IActionResult> RoomLogin([FromBody] RoomLoginDto roomDto)
         {
@@ -150,5 +149,6 @@ namespace System.APIs.Controllers
                 message = "تم تسجيل الدخول بنجاح، يمكنك الآن طلب من الصفحة"
             }, "success", 200));
         }
+
     }
 }

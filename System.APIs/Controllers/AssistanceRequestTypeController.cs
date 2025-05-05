@@ -20,7 +20,6 @@ namespace System.APIs.Controllers
         #region Default Assistance Request Types
 
         //* Get Default Assistance Types
-        [Authorize(Roles = "Admin")]
         [HttpGet("default")]
         public async Task<IActionResult> GetDefaultAssistanceTypes()
         {
@@ -91,11 +90,6 @@ namespace System.APIs.Controllers
         [HttpPost("store/{storeId}")]
         public async Task<IActionResult> CreateAssistanceRequestType(int storeId, [FromBody] string name)
         {
-            if (string.IsNullOrEmpty(name))
-            {
-                return BadRequest(new ApiResponse<AssistanceRequestType>("اسم المساعدة مطلوب", 400));
-            }
-
             var response = await _assistanceRequestTypeService.CreateAssistanceRequestTypeAsync(name, storeId);
             return StatusCode(response.StatusCode, response);
         }

@@ -47,7 +47,7 @@ namespace System.APIs.Controllers
         }
 
         [HttpGet("store/{storeId}")]
-        [Authorize(Roles = "Admin,Owner")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetRooms(int storeId)
         {
             var response = await _storeService.GetRoomsAsync(storeId);

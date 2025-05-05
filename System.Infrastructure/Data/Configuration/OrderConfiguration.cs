@@ -11,10 +11,6 @@ namespace System.Infrastructure.Data.Configuration
             builder.Property(o => o.TotalAmount)
                 .HasPrecision(18, 2);
 
-            builder.Property(o => o.PaymentMethod)
-                .IsRequired()
-                .HasMaxLength(50);
-
             builder.Property(o => o.Status)
                 .IsRequired()
                 .HasConversion<string>();
@@ -22,12 +18,12 @@ namespace System.Infrastructure.Data.Configuration
             builder.Property(o => o.RejectionReason)
                 .HasMaxLength(500);
 
-            builder.HasOne(o => o.Customer)
+            builder.HasOne<Customer>()
                 .WithMany(c => c.Orders)
                 .HasForeignKey(o => o.CustomerId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            builder.HasOne(o => o.Room)
+            builder.HasOne<Room>()
                 .WithMany(r => r.Orders)
                 .HasForeignKey(o => o.RoomId)
                 .OnDelete(DeleteBehavior.NoAction);

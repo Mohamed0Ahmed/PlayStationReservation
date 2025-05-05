@@ -14,12 +14,12 @@ namespace System.Infrastructure.Data.Configuration
                 .IsRequired()
                 .HasDefaultValue(1);
 
-            builder.HasOne(oi => oi.Order)
+            builder.HasOne<Order>()
                 .WithMany(o => o.OrderItems)
                 .HasForeignKey(oi => oi.OrderId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            builder.HasOne(oi => oi.MenuItem)
+            builder.HasOne<MenuItem>()
                 .WithMany()
                 .HasForeignKey(oi => oi.MenuItemId)
                 .OnDelete(DeleteBehavior.NoAction);

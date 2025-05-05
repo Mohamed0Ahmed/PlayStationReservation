@@ -67,14 +67,6 @@ namespace System.APIs.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
-        //* Get Most Requested Gift Count
-        [HttpGet("most-requested/{storeId}")]
-        public async Task<IActionResult> GetMostRequestedGiftCount(int storeId)
-        {
-            var response = await _giftService.GetMostRequestedGiftCountAsync(storeId);
-            return StatusCode(response.StatusCode, response);
-        }
-
         #endregion
     }
 }

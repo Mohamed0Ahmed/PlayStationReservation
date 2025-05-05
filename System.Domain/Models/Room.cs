@@ -8,6 +8,6 @@ namespace System.Domain.Models
         public string Password { get; set; } = string.Empty;
         public int StoreId { get; set; }
         public List<Order> Orders { get; set; } = [];
-        public List<AssistanceRequest> AssistanceRequests { get; set; } = [];
+        public List<Request> AssistanceRequests { get; set; } = [];
     }
 }

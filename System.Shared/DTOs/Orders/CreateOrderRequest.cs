@@ -4,6 +4,6 @@
     {
         public string PhoneNumber { get; set; }
         public int RoomId { get; set; }
-        public List<(int menuItemId, int quantity)> Items { get; set; }
+        public List<ItemsDto> Items { get; set; }
     }
 }

@@ -24,10 +24,6 @@ namespace System.APIs.Controllers
         [AllowAnonymous] // Allow customers to create orders
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
         {
-            if (string.IsNullOrEmpty(request.PhoneNumber) || request.RoomId <= 0 || request.Items == null || !request.Items.Any())
-            {
-                return BadRequest(new ApiResponse<Order>("رقم التليفون، معرف الغرفة، والأصناف يجب أن تكون صالحة", 400));
-            }
 
             var response = await _orderService.CreateOrderAsync(request.PhoneNumber, request.RoomId, request.Items);
             return StatusCode(response.StatusCode, response);
@@ -61,7 +57,7 @@ namespace System.APIs.Controllers
                 return BadRequest(new ApiResponse<Order>("المبلغ الإجمالي يجب أن يكون صالحًا", 400));
             }
 
-            var response = await _orderService.ApproveOrderAsync(id, totalAmount);
+            var response = await _orderService.ApproveOrderAsync(id);
             return StatusCode(response.StatusCode, response);
         }
 

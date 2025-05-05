@@ -15,7 +15,7 @@ namespace System.Infrastructure.Data.Configuration
             builder.Property(g => g.PointsRequired)
                 .IsRequired();
 
-            builder.HasOne(g => g.Store)
+            builder.HasOne<Store>()
                 .WithMany(s => s.Gifts)
                 .HasForeignKey(g => g.StoreId);
 

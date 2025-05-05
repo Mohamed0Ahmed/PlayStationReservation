@@ -9,6 +9,7 @@ using System.Infrastructure.Unit;
 using System.Infrastructure.Data;
 using System.Text;
 using System.Shared.Middleware;
+using System.Security.Claims;
 
 
 namespace System.APIs
@@ -47,7 +48,8 @@ namespace System.APIs
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = builder.Configuration["Jwt:Issuer"],
                     ValidAudience = builder.Configuration["Jwt:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(key)
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    RoleClaimType = ClaimTypes.Role
                 };
             });
 

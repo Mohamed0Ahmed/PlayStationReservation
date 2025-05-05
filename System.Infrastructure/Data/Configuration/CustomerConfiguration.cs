@@ -15,7 +15,7 @@ namespace System.Infrastructure.Data.Configuration
             builder.Property(c => c.Points)
                 .HasDefaultValue(0);
 
-            builder.HasOne(c => c.Store)
+            builder.HasOne<Store>()
                 .WithMany(s => s.Customers)
                 .HasForeignKey(c => c.StoreId)
                 .OnDelete(DeleteBehavior.NoAction);

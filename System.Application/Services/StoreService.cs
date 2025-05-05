@@ -48,8 +48,8 @@ namespace System.Application.Services
         {
             var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
             if (store == null)
-             return new ApiResponse<StoreDto>("المحل غير موجود", 404);
-            
+                return new ApiResponse<StoreDto>("المحل غير موجود", 404);
+
 
             // Check if OwnerEmail is already in use by another store
             if (await _unitOfWork.GetRepository<Store, int>().AnyAsync(s => s.OwnerEmail == ownerEmail || s.Name == name))
@@ -246,9 +246,12 @@ namespace System.Application.Services
         {
             var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
             if (store == null)
-            {
                 return new ApiResponse<PointSetting>("المحل غير موجود", 404);
-            }
+
+            var pointSetting = await _unitOfWork.GetRepository<PointSetting, int>().FindAsync(p => p.StoreId == storeId);
+            if (pointSetting.Any())
+                return new ApiResponse<PointSetting>( "بالفعل لديك نظام للنقاط", 201);
+
 
             var setting = new PointSetting
             {

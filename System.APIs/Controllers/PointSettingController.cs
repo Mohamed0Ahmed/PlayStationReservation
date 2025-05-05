@@ -21,14 +21,14 @@ namespace System.APIs.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(PointSettingDto setting)
         {
-            var response = await _storeService.CreatePointSettingAsync(setting.StoreId, setting.Amount, setting.Points);
+            var response = await _storeService.CreatePointSettingAsync(setting.StoreId, setting.Amount, setting.Points );
             return StatusCode(response.StatusCode, response);
         }
 
         [HttpPut]
         public async Task<IActionResult> Update(PointSettingDto setting)
         {
-            var response = await _storeService.UpdatePointSettingAsync(setting.StoreId, setting.Amount, setting.Points);
+            var response = await _storeService.UpdatePointSettingAsync(setting.Id, setting.Amount, setting.Points);
             return StatusCode(response.StatusCode, response);
         }
 

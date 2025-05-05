@@ -6,12 +6,9 @@ namespace System.Domain.Models
     public class Order : BaseEntity<int>
     {
         public int CustomerId { get; set; }
-        public Customer Customer { get; set; }
         public int RoomId { get; set; }
-        public Room Room { get; set; }
+        public int StoreId { get; set; }
         public decimal TotalAmount { get; set; }
-        public string PaymentMethod { get; set; } = string.Empty;
-        public int PointsUsed { get; set; }
         public Status Status { get; set; }
         public string RejectionReason { get; set; } = string.Empty;
         public DateTime OrderDate { get; set; }

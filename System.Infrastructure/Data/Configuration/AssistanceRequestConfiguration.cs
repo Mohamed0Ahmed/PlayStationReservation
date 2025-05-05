@@ -4,9 +4,9 @@ using System.Domain.Models;
 
 namespace System.Infrastructure.Data.Configuration
 {
-    public class AssistanceRequestConfiguration : IEntityTypeConfiguration<AssistanceRequest>
+    public class AssistanceRequestConfiguration : IEntityTypeConfiguration<Request>
     {
-        public void Configure(EntityTypeBuilder<AssistanceRequest> builder)
+        public void Configure(EntityTypeBuilder<Request> builder)
         {
             builder.Property(ar => ar.RequestTypeId)
                 .IsRequired();
@@ -18,18 +18,18 @@ namespace System.Infrastructure.Data.Configuration
             builder.Property(ar => ar.RejectionReason)
                 .HasMaxLength(500);
 
-            builder.HasOne(ar => ar.Customer)
+            builder.HasOne<Customer>()
                 .WithMany(c => c.AssistanceRequests)
                 .HasForeignKey(ar => ar.CustomerId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            builder.HasOne(ar => ar.Room)
+            builder.HasOne<Room>()
                 .WithMany(r => r.AssistanceRequests)
                 .HasForeignKey(ar => ar.RoomId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            builder.HasOne(ar => ar.RequestType)
-                .WithMany(art => art.AssistanceRequests)
+            builder.HasOne<AssistanceRequestType>()
+                .WithMany()
                 .HasForeignKey(ar => ar.RequestTypeId)
                 .OnDelete(DeleteBehavior.NoAction);
         }

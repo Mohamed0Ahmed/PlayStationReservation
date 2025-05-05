@@ -18,7 +18,7 @@ namespace System.Application.Abstraction
         Task<ApiResponse<bool>> DeleteRoomAsync(int roomId);
         Task<ApiResponse<bool>> RestoreRoomAsync(int roomId);
         Task<ApiResponse<List<RoomDto>>> GetRoomsAsync(int storeId);
-        Task<ApiResponse<PointSetting>> CreatePointSettingAsync(int storeId, decimal amountPerPoint, int points);
+        Task<ApiResponse<PointSetting>> CreatePointSettingAsync(int storeId, decimal amountPerPoint, int points );
         Task<ApiResponse<PointSetting>> UpdatePointSettingAsync(int settingId, decimal amountPerPoint, int points);
         Task<ApiResponse<bool>> DeletePointSettingAsync(int settingId);
         Task<ApiResponse<List<PointSetting>>> GetPointSettingsAsync(int storeId);

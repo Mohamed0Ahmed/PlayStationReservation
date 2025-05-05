@@ -122,21 +122,7 @@ namespace System.Application.Services
             return new ApiResponse<int>(count, "تم جلب عدد الهدايا بنجاح");
         }
 
-        //* Get Most Requested Gift Count
-        public async Task<ApiResponse<int>> GetMostRequestedGiftCountAsync(int storeId)
-        {
-
-
-            var mostRequestedGift = (await _unitOfWork.GetRepository<GiftRedemption, int>().FindWithIncludesAsync(
-                gr => gr.Gift.StoreId == storeId,
-                include: q => q.Include(gr => gr.Gift)))
-                .GroupBy(gr => gr.GiftId)
-                .OrderByDescending(g => g.Count())
-                .FirstOrDefault();
-
-            var count = mostRequestedGift?.Count() ?? 0;
-            return new ApiResponse<int>(count, "تم جلب عدد طلبات أكثر هدية بنجاح");
-        }
+   
 
         #endregion
     }

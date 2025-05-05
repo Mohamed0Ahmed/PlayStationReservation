@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.Application.Abstraction;
+﻿using System.Application.Abstraction;
 using System.Domain.Enums;
 using System.Domain.Models;
 using System.Infrastructure.Unit;
@@ -7,12 +6,12 @@ using System.Shared;
 
 namespace System.Application.Services
 {
-    public class AssistanceRequestService : IAssistanceRequestService
+    public class RequestService : IRequestService
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly INotificationService _notificationService;
 
-        public AssistanceRequestService(IUnitOfWork unitOfWork, INotificationService notificationService)
+        public RequestService(IUnitOfWork unitOfWork, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _notificationService = notificationService;
@@ -21,16 +20,16 @@ namespace System.Application.Services
         #region Assistance Requests
 
         //* Create Assistance Request
-        public async Task<ApiResponse<AssistanceRequest>> CreateAssistanceRequestAsync(int roomId, int requestTypeId)
+        public async Task<ApiResponse<Request>> CreateAssistanceRequestAsync(int roomId, int requestTypeId)
         {
             if (roomId <= 0 || requestTypeId <= 0)
-                return new ApiResponse<AssistanceRequest>("مفيش غرفة او مساعدة بالاي دي ده", 400);
+                return new ApiResponse<Request>("مفيش غرفة او مساعدة بالاي دي ده", 400);
 
 
             var room = await _unitOfWork.GetRepository<Room, int>().GetByIdAsync(roomId);
 
             if (room == null)
-                return new ApiResponse<AssistanceRequest>("الغرفة غير موجودة", 404);
+                return new ApiResponse<Request>("الغرفة غير موجودة", 404);
 
 
             // التحقق من نوع المساعدة (Custom أو Default)
@@ -39,12 +38,13 @@ namespace System.Application.Services
             {
                 var defaultType = await _unitOfWork.GetRepository<DefaultAssistanceRequestType, int>().GetByIdAsync(requestTypeId);
                 if (defaultType == null)
-                    return new ApiResponse<AssistanceRequest>("نوع المساعدة غير موجود", 404);
+                    return new ApiResponse<Request>("نوع المساعدة غير موجود", 404);
             }
 
 
-            var request = new AssistanceRequest
+            var request = new Request
             {
+                StoreId= room.StoreId,
                 RoomId = roomId,
                 RequestTypeId = requestTypeId,
                 Status = Status.Pending,
@@ -52,105 +52,92 @@ namespace System.Application.Services
                 CreatedOn = DateTime.UtcNow
             };
 
-            await _unitOfWork.GetRepository<AssistanceRequest, int>().AddAsync(request);
+            await _unitOfWork.GetRepository<Request, int>().AddAsync(request);
             await _unitOfWork.SaveChangesAsync();
 
             await _notificationService.SendAssistanceRequestNotificationAsync(room.StoreId, roomId);
-            return new ApiResponse<AssistanceRequest>(request, "تم إضافة طلب المساعدة بنجاح", 201);
+            return new ApiResponse<Request>(request, "تم إضافة طلب المساعدة بنجاح", 201);
         }
 
         //* Get Pending Assistance Requests
-        public async Task<ApiResponse<List<AssistanceRequest>>> GetPendingAssistanceRequestsAsync(int storeId)
+        public async Task<ApiResponse<List<Request>>> GetPendingAssistanceRequestsAsync(int storeId)
         {
-            if (storeId <= 0)
-                return new ApiResponse<List<AssistanceRequest>>("المحل ده مش موجود", 400);
-
-
-            var requests = await _unitOfWork.GetRepository<AssistanceRequest, int>().FindAsync(
-                predicate: ar => ar.RequestType.StoreId == storeId && ar.Status == Status.Pending);
+            var requests = await _unitOfWork.GetRepository<Request, int>().FindAsync(
+                predicate: ar => ar.StoreId == storeId && ar.Status == Status.Pending);
 
             if (!requests.Any())
-                return new ApiResponse<List<AssistanceRequest>>("لا يوجد طلبات مساعدة حاليا", 404);
+                return new ApiResponse<List<Request>>("لا يوجد طلبات مساعدة حاليا", 404);
 
 
-            return new ApiResponse<List<AssistanceRequest>>(requests.ToList(), "المساعدات المطلوبة حاليا");
+            return new ApiResponse<List<Request>>(requests.ToList(), "المساعدات المطلوبة حاليا");
         }
 
         //* Get All Assistance Requests
-        public async Task<ApiResponse<List<AssistanceRequest>>> GetAssistanceRequestsAsync(int storeId, bool includeDeleted = false)
+        public async Task<ApiResponse<List<Request>>> GetAssistanceRequestsAsync(int storeId, bool includeDeleted = false)
         {
             if (storeId <= 0)
-                return new ApiResponse<List<AssistanceRequest>>("المحل ده مش موجود", 400);
+                return new ApiResponse<List<Request>>("المحل ده مش موجود", 400);
 
 
-            var requests = await _unitOfWork.GetRepository<AssistanceRequest, int>().FindWithIncludesAsync(
-                predicate: ar => ar.RequestType.StoreId == storeId,
-                include: q => q.Include(ar => ar.Customer).Include(ar => ar.Room).Include(ar => ar.RequestType),
-                includeDeleted: includeDeleted);
+            var requests = await _unitOfWork.GetRepository<Request, int>().FindWithIncludesAsync(
+                predicate: ar => ar.StoreId == storeId);
 
             if (!requests.Any())
-                return new ApiResponse<List<AssistanceRequest>>("لا يوجد طلبات مساعدة", 404);
+                return new ApiResponse<List<Request>>("لا يوجد طلبات مساعدة", 404);
 
 
-            return new ApiResponse<List<AssistanceRequest>>(requests.ToList(), "تم جلب طلبات المساعدة بنجاح");
+            return new ApiResponse<List<Request>>(requests.ToList(), "تم جلب طلبات المساعدة بنجاح");
         }
 
         //* Approve Assistance Request
-        public async Task<ApiResponse<AssistanceRequest>> ApproveAssistanceRequestAsync(int requestId)
+        public async Task<ApiResponse<Request>> ApproveAssistanceRequestAsync(int requestId)
         {
-            if (requestId <= 0)
-                return new ApiResponse<AssistanceRequest>("ادخل البيانات بشكل صحيح", 400);
-
-
-            var request = await _unitOfWork.GetRepository<AssistanceRequest, int>().GetByIdWithIncludesAsync(
-                requestId, include: q => q.Include(ar => ar.Room));
+            var request = await _unitOfWork.GetRepository<Request, int>().GetByIdWithIncludesAsync(requestId);
 
             if (request == null)
-                return new ApiResponse<AssistanceRequest>("طلب المساعدة غير موجود", 404);
+                return new ApiResponse<Request>("طلب المساعدة غير موجود", 404);
 
 
             if (request.Status != Status.Pending)
-                return new ApiResponse<AssistanceRequest>("لا يمكن الموافقة على طلب غير معلق", 400);
-
-
+                return new ApiResponse<Request>("لا يمكن الموافقة على طلب غير معلق", 400);
 
             request.Status = Status.Accepted;
             request.LastModifiedOn = DateTime.UtcNow;
-            _unitOfWork.GetRepository<AssistanceRequest, int>().Update(request);
+            _unitOfWork.GetRepository<Request, int>().Update(request);
             await _unitOfWork.SaveChangesAsync();
 
             await _notificationService.SendAssistanceRequestStatusUpdateAsync(request.RoomId, true);
-            return new ApiResponse<AssistanceRequest>(request, "تم الموافقة على طلب المساعدة بنجاح");
+            return new ApiResponse<Request>(request, "تم الموافقة على طلب المساعدة بنجاح");
         }
 
         //* Reject Assistance Request
-        public async Task<ApiResponse<AssistanceRequest>> RejectAssistanceRequestAsync(int requestId, string rejectionReason)
+        public async Task<ApiResponse<Request>> RejectAssistanceRequestAsync(int requestId, string rejectionReason)
         {
             if (requestId <= 0)
-                return new ApiResponse<AssistanceRequest>("ادخل البيانات بشكل صحيح", 400);
+                return new ApiResponse<Request>("ادخل البيانات بشكل صحيح", 400);
 
 
             if (string.IsNullOrEmpty(rejectionReason))
-                return new ApiResponse<AssistanceRequest>("سبب الرفض مطلوب", 400);
+                return new ApiResponse<Request>("سبب الرفض مطلوب", 400);
 
 
-            var request = await _unitOfWork.GetRepository<AssistanceRequest, int>().GetByIdAsync(requestId);
+            var request = await _unitOfWork.GetRepository<Request, int>().GetByIdAsync(requestId);
             if (request == null)
-                return new ApiResponse<AssistanceRequest>("طلب المساعدة غير موجود", 404);
+                return new ApiResponse<Request>("طلب المساعدة غير موجود", 404);
 
 
             if (request.Status != Status.Pending)
-                return new ApiResponse<AssistanceRequest>("لا يمكن رفض طلب غير معلق", 400);
+                return new ApiResponse<Request>("لا يمكن رفض طلب غير معلق", 400);
 
 
             request.Status = Status.Rejected;
             request.RejectionReason = rejectionReason;
             request.LastModifiedOn = DateTime.UtcNow;
-            _unitOfWork.GetRepository<AssistanceRequest, int>().Update(request);
+            _unitOfWork.GetRepository<Request, int>().Update(request);
             await _unitOfWork.SaveChangesAsync();
 
             await _notificationService.SendAssistanceRequestStatusUpdateAsync(request.RoomId, false, rejectionReason);
-            return new ApiResponse<AssistanceRequest>(request, "تم رفض طلب المساعدة بنجاح");
+            return new ApiResponse<Request>(request, "تم رفض طلب المساعدة بنجاح");
         }
 
         //* Get Total Assistance Requests Count
@@ -161,8 +148,7 @@ namespace System.Application.Services
                 return new ApiResponse<int>("معرف المحل غير صالح", 400);
             }
 
-            var count = (await _unitOfWork.GetRepository<AssistanceRequest, int>().FindAsync(
-                ar => ar.RequestType.StoreId == storeId)).Count();
+            var count = (await _unitOfWork.GetRepository<Request, int>().FindAsync(ar => ar.StoreId == storeId)).Count();
             return new ApiResponse<int>(count, "تم جلب عدد طلبات المساعدة بنجاح");
         }
 

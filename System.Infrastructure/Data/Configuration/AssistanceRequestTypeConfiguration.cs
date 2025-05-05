@@ -8,11 +8,15 @@ namespace System.Infrastructure.Data.Configuration
     {
         public void Configure(EntityTypeBuilder<AssistanceRequestType> builder)
         {
+            builder.Property(art => art.Id)
+                .UseIdentityColumn(1000, 1);
+
+
             builder.Property(art => art.Name)
                 .IsRequired()
                 .HasMaxLength(50);
 
-            builder.HasOne(art => art.Store)
+            builder.HasOne<Store>()
                 .WithMany(s => s.AssistanceRequestTypes)
                 .HasForeignKey(art => art.StoreId);
 
