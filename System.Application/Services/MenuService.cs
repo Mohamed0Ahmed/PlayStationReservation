@@ -233,8 +233,11 @@ namespace System.Application.Services
         //* Get Total Items Count
         public async Task<ApiResponse<List<ItemDto>>> GetAllItemsAsync(int storeId)
         {
-            var items = (await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(
-                mi => mi.StoreId == storeId)).Count();
+            var items = await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(
+                mi => mi.StoreId == storeId);
+            if (!items.Any())
+                return new ApiResponse<List<ItemDto>>("لم يتم اضافة اي منتج حاليا");
+
 
             var itemsDto = items.Adapt<List<ItemDto>>();
             return new ApiResponse<List<ItemDto>>(itemsDto, "تم جلب كل الأصناف بنجاح");
