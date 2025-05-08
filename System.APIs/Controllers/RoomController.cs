@@ -53,5 +53,12 @@ namespace System.APIs.Controllers
             var response = await _storeService.GetRoomsAsync(storeId);
             return StatusCode(response.StatusCode, response);
         }
+        [HttpGet("store/deleted/{storeId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetDeletedRooms(int storeId)
+        {
+            var response = await _storeService.GetDeletedRoomsAsync(storeId);
+            return StatusCode(response.StatusCode, response);
+        }
     }
 }

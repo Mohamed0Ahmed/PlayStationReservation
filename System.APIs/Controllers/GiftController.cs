@@ -21,7 +21,7 @@ namespace System.APIs.Controllers
 
         //* Create Gift
         [HttpPost]
-        public async Task<IActionResult> CreateGift([FromBody] CreateGiftRequest request)
+        public async Task<IActionResult> CreateGift([FromBody] GiftDto request)
         {
             var response = await _giftService.CreateGiftAsync(request.Name, request.PointsRequired, request.StoreId);
             return StatusCode(response.StatusCode, response);
@@ -29,9 +29,9 @@ namespace System.APIs.Controllers
 
         //* Update Gift
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateGift(int id, [FromBody] UpdateGiftRequest request)
+        public async Task<IActionResult> UpdateGift([FromBody] GiftDto request)
         {
-            var response = await _giftService.UpdateGiftAsync(id, request.Name, request.PointsRequired);
+            var response = await _giftService.UpdateGiftAsync(request.Id, request.Name, request.PointsRequired);
             return StatusCode(response.StatusCode, response);
         }
 

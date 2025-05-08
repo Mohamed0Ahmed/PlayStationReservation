@@ -60,33 +60,33 @@ namespace System.Application.Services
         }
 
         //* Get Pending Assistance Requests
-        public async Task<ApiResponse<List<Request>>> GetPendingAssistanceRequestsAsync(int storeId)
+        public async Task<ApiResponse<IEnumerable<Request>>> GetPendingAssistanceRequestsAsync(int storeId)
         {
             var requests = await _unitOfWork.GetRepository<Request, int>().FindAsync(
                 predicate: ar => ar.StoreId == storeId && ar.Status == Status.Pending);
 
             if (!requests.Any())
-                return new ApiResponse<List<Request>>("لا يوجد طلبات مساعدة حاليا", 404);
+                return new ApiResponse<IEnumerable<Request>>("لا يوجد طلبات مساعدة حاليا", 404);
 
 
-            return new ApiResponse<List<Request>>(requests.ToList(), "المساعدات المطلوبة حاليا");
+            return new ApiResponse<IEnumerable<Request>>(requests, "المساعدات المطلوبة حاليا");
         }
 
         //* Get All Assistance Requests
-        public async Task<ApiResponse<List<Request>>> GetAssistanceRequestsAsync(int storeId, bool includeDeleted = false)
+        public async Task<ApiResponse<IEnumerable<Request>>> GetAssistanceRequestsAsync(int storeId, bool includeDeleted = false)
         {
             if (storeId <= 0)
-                return new ApiResponse<List<Request>>("المحل ده مش موجود", 400);
+                return new ApiResponse<IEnumerable<Request>>("المحل ده مش موجود", 400);
 
 
             var requests = await _unitOfWork.GetRepository<Request, int>().FindWithIncludesAsync(
                 predicate: ar => ar.StoreId == storeId);
 
             if (!requests.Any())
-                return new ApiResponse<List<Request>>("لا يوجد طلبات مساعدة", 404);
+                return new ApiResponse<IEnumerable<Request>>("لا يوجد طلبات مساعدة", 404);
 
 
-            return new ApiResponse<List<Request>>(requests.ToList(), "تم جلب طلبات المساعدة بنجاح");
+            return new ApiResponse<IEnumerable<Request>>(requests, "تم جلب طلبات المساعدة بنجاح");
         }
 
         //* Approve Assistance Request

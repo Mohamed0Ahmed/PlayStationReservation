@@ -9,7 +9,7 @@ namespace System.Application.Abstraction
         Task<ApiResponse<Gift>> UpdateGiftAsync(int giftId, string name, int pointsRequired);
         Task<ApiResponse<bool>> DeleteGiftAsync(int giftId);
         Task<ApiResponse<bool>> RestoreGiftAsync(int giftId);
-        Task<ApiResponse<List<Gift>>> GetGiftsAsync(int storeId);
+        Task<ApiResponse<IEnumerable<Gift>>> GetGiftsAsync(int storeId);
         Task<ApiResponse<int>> GetTotalGiftsCountAsync(int storeId);
     }
 }

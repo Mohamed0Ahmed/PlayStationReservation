@@ -21,7 +21,7 @@ namespace System.Application.Services
         #region Orders
 
         //* Create Order
-        public async Task<ApiResponse<Order>> CreateOrderAsync(string phoneNumber, int roomId, List<ItemsDto> items)
+        public async Task<ApiResponse<Order>> CreateOrderAsync(string phoneNumber, int roomId, IEnumerable<ItemsDto> items)
         {
             var room = await _unitOfWork.GetRepository<Room, int>().GetByIdAsync(roomId);
             if (room == null)
@@ -32,68 +32,89 @@ namespace System.Application.Services
             var customer = customers.FirstOrDefault();
 
             if (customer == null)
-                return new ApiResponse<Order>("لعميل غير مسجل، سجل برقم تليفونك أولا", 400);
+                return new ApiResponse<Order>("العميل غير مسجل، سجل برقم تليفونك أولا", 400);
 
-            var order = new Order
+            await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                StoreId = customer.StoreId,
-                CustomerId = customer.Id,
-                RoomId = roomId,
-                Status = Status.Pending,
-                OrderDate = DateTime.UtcNow,
-                CreatedOn = DateTime.UtcNow
-            };
-
-            foreach (var item in items)
-            {
-                var menuItem = await _unitOfWork.GetRepository<MenuItem, int>().GetByIdAsync(item.MenuItemId);
-                if (menuItem == null)
-                    return new ApiResponse<Order>("هذا الصنف غير موجود", 404);
-
-                var orderItem = new OrderItem
+                var order = new Order
                 {
-                    PriceAtOrderTime = menuItem.Price,
-                    OrderId = order.Id,
-                    MenuItemId = item.MenuItemId,
-                    Quantity = item.Quantity,
-                    CreatedOn = DateTime.UtcNow
+                    StoreId = customer.StoreId,
+                    CustomerId = customer.Id,
+                    RoomId = roomId,
+                    Status = Status.Pending,
+                    OrderDate = DateTime.UtcNow,
+                    CreatedOn = DateTime.UtcNow,
+                    OrderItems = new List<OrderItem>(),
+                    TotalAmount = 0
                 };
-                order.TotalAmount += (menuItem.Price * item.Quantity);
 
-                await _unitOfWork.GetRepository<OrderItem, int>().AddAsync(orderItem);
-                order.OrderItems.Add(orderItem);
+                await _unitOfWork.GetRepository<Order, int>().AddAsync(order);
+                await _unitOfWork.SaveChangesAsync();
+
+                foreach (var item in items)
+                {
+                    var menuItem = await _unitOfWork.GetRepository<MenuItem, int>().GetByIdAsync(item.MenuItemId);
+                    if (menuItem == null)
+                    {
+                        await _unitOfWork.RollbackTransactionAsync();
+                        return new ApiResponse<Order>("هذا الصنف غير موجود", 404);
+                    }
+
+                    var orderItem = new OrderItem
+                    {
+                        PriceAtOrderTime = menuItem.Price,
+                        OrderId = order.Id,
+                        MenuItemId = item.MenuItemId,
+                        Quantity = item.Quantity,
+                        CreatedOn = DateTime.UtcNow
+                    };
+
+                    order.TotalAmount += (menuItem.Price * item.Quantity);
+
+                    await _unitOfWork.GetRepository<OrderItem, int>().AddAsync(orderItem);
+                    order.OrderItems.Add(orderItem);
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+
+                await _notificationService.SendOrderNotificationAsync(customer.StoreId, roomId);
+
+                return new ApiResponse<Order>(order, "تم إضافة الطلب بنجاح", 201);
             }
-
-            await _unitOfWork.GetRepository<Order, int>().AddAsync(order);
-            await _unitOfWork.SaveChangesAsync();
-            await _notificationService.SendOrderNotificationAsync(customer.StoreId, roomId);
-
-            return new ApiResponse<Order>(order, "تم إضافة الطلب بنجاح", 201);
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return new ApiResponse<Order>($"حدث خطأ أثناء تنفيذ الطلب: {ex.Message}", 500);
+            }
         }
 
+
+
         //* Get Pending Orders
-        public async Task<ApiResponse<List<Order>>> GetPendingOrdersAsync(int storeId)
+        public async Task<ApiResponse<IEnumerable<Order>>> GetPendingOrdersAsync(int storeId)
         {
             var orders = await _unitOfWork.GetRepository<Order, int>().FindAsync(o => o.StoreId == storeId && o.Status == Status.Pending);
 
             if (!orders.Any())
-                return new ApiResponse<List<Order>>("لا يوجد طلبات معلقة", 404);
+                return new ApiResponse<IEnumerable<Order>>("لا يوجد طلبات معلقة", 404);
 
 
-            return new ApiResponse<List<Order>>(orders.ToList(), "تم جلب الطلبات المعلقة بنجاح");
+            return new ApiResponse<IEnumerable<Order>>(orders, "تم جلب الطلبات المعلقة بنجاح");
         }
 
         //* Get All Orders
-        public async Task<ApiResponse<List<Order>>> GetOrdersAsync(int storeId, bool includeDeleted = false)
+        public async Task<ApiResponse<IEnumerable<Order>>> GetOrdersAsync(int storeId, bool includeDeleted = false)
         {
             var orders = await _unitOfWork.GetRepository<Order, int>().FindWithIncludesAsync(
                 predicate: o => o.StoreId == storeId);
 
             if (!orders.Any())
-                return new ApiResponse<List<Order>>("لا يوجد طلبات", 404);
+                return new ApiResponse<IEnumerable<Order>>("لا يوجد طلبات", 404);
 
 
-            return new ApiResponse<List<Order>>(orders.ToList(), "تم جلب الطلبات بنجاح");
+            return new ApiResponse<IEnumerable<Order>>(orders, "تم جلب الطلبات بنجاح");
         }
 
         //* Approve Order

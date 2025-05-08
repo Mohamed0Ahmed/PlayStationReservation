@@ -202,7 +202,7 @@ namespace System.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1000, 1"),
                     Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     StoreId = table.Column<int>(type: "int", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
@@ -363,40 +363,6 @@ namespace System.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "GiftRedemptions",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CustomerId = table.Column<int>(type: "int", nullable: false),
-                    GiftId = table.Column<int>(type: "int", nullable: false),
-                    RedemptionDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    RejectionReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    DeletedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsHidden = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    LastModifiedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_GiftRedemptions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_GiftRedemptions_Customers_CustomerId",
-                        column: x => x.CustomerId,
-                        principalTable: "Customers",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_GiftRedemptions_Gifts_GiftId",
-                        column: x => x.GiftId,
-                        principalTable: "Gifts",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "MenuItems",
                 columns: table => new
                 {
@@ -405,7 +371,8 @@ namespace System.Infrastructure.Migrations
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     PointsRequired = table.Column<int>(type: "int", nullable: false),
-                    MenuCategoryId = table.Column<int>(type: "int", nullable: false),
+                    CategoryId = table.Column<int>(type: "int", nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     DeletedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsHidden = table.Column<bool>(type: "bit", nullable: false),
@@ -418,51 +385,11 @@ namespace System.Infrastructure.Migrations
                 {
                     table.PrimaryKey("PK_MenuItems", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_MenuItems_MenuCategories_MenuCategoryId",
-                        column: x => x.MenuCategoryId,
+                        name: "FK_MenuItems_MenuCategories_CategoryId",
+                        column: x => x.CategoryId,
                         principalTable: "MenuCategories",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AssistanceRequests",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CustomerId = table.Column<int>(type: "int", nullable: false),
-                    RoomId = table.Column<int>(type: "int", nullable: false),
-                    RequestTypeId = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    RejectionReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    RequestDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    DeletedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsHidden = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    LastModifiedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AssistanceRequests", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_AssistanceRequests_AssistanceRequestTypes_RequestTypeId",
-                        column: x => x.RequestTypeId,
-                        principalTable: "AssistanceRequestTypes",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_AssistanceRequests_Customers_CustomerId",
-                        column: x => x.CustomerId,
-                        principalTable: "Customers",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_AssistanceRequests_Rooms_RoomId",
-                        column: x => x.RoomId,
-                        principalTable: "Rooms",
-                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -473,9 +400,8 @@ namespace System.Infrastructure.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CustomerId = table.Column<int>(type: "int", nullable: false),
                     RoomId = table.Column<int>(type: "int", nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
                     TotalAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    PaymentMethod = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    PointsUsed = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     RejectionReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     OrderDate = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -503,12 +429,54 @@ namespace System.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Requests",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CustomerId = table.Column<int>(type: "int", nullable: false),
+                    RoomId = table.Column<int>(type: "int", nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    RequestTypeId = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    RejectionReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    RequestDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsHidden = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    LastModifiedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Requests", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Requests_AssistanceRequestTypes_RequestTypeId",
+                        column: x => x.RequestTypeId,
+                        principalTable: "AssistanceRequestTypes",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Requests_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Requests_Rooms_RoomId",
+                        column: x => x.RoomId,
+                        principalTable: "Rooms",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "OrderItems",
                 columns: table => new
                 {
                     OrderId = table.Column<int>(type: "int", nullable: false),
                     MenuItemId = table.Column<int>(type: "int", nullable: false),
                     Quantity = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
+                    PriceAtOrderTime = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     Id = table.Column<int>(type: "int", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     DeletedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -573,21 +541,6 @@ namespace System.Infrastructure.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AssistanceRequests_CustomerId",
-                table: "AssistanceRequests",
-                column: "CustomerId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AssistanceRequests_RequestTypeId",
-                table: "AssistanceRequests",
-                column: "RequestTypeId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AssistanceRequests_RoomId",
-                table: "AssistanceRequests",
-                column: "RoomId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_AssistanceRequestTypes_Name_StoreId",
                 table: "AssistanceRequestTypes",
                 columns: new[] { "Name", "StoreId" },
@@ -608,16 +561,6 @@ namespace System.Infrastructure.Migrations
                 name: "IX_Customers_StoreId",
                 table: "Customers",
                 column: "StoreId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_GiftRedemptions_CustomerId",
-                table: "GiftRedemptions",
-                column: "CustomerId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_GiftRedemptions_GiftId",
-                table: "GiftRedemptions",
-                column: "GiftId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Gifts_Name_StoreId",
@@ -642,14 +585,14 @@ namespace System.Infrastructure.Migrations
                 column: "StoreId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MenuItems_MenuCategoryId",
+                name: "IX_MenuItems_CategoryId",
                 table: "MenuItems",
-                column: "MenuCategoryId");
+                column: "CategoryId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MenuItems_Name_MenuCategoryId",
+                name: "IX_MenuItems_Name_CategoryId",
                 table: "MenuItems",
-                columns: new[] { "Name", "MenuCategoryId" },
+                columns: new[] { "Name", "CategoryId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -671,6 +614,21 @@ namespace System.Infrastructure.Migrations
                 name: "IX_PointSettings_StoreId",
                 table: "PointSettings",
                 column: "StoreId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Requests_CustomerId",
+                table: "Requests",
+                column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Requests_RequestTypeId",
+                table: "Requests",
+                column: "RequestTypeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Requests_RoomId",
+                table: "Requests",
+                column: "RoomId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Rooms_StoreId",
@@ -709,13 +667,10 @@ namespace System.Infrastructure.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "AssistanceRequests");
-
-            migrationBuilder.DropTable(
                 name: "DefaultAssistance");
 
             migrationBuilder.DropTable(
-                name: "GiftRedemptions");
+                name: "Gifts");
 
             migrationBuilder.DropTable(
                 name: "OrderItems");
@@ -724,22 +679,22 @@ namespace System.Infrastructure.Migrations
                 name: "PointSettings");
 
             migrationBuilder.DropTable(
+                name: "Requests");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
 
             migrationBuilder.DropTable(
-                name: "AssistanceRequestTypes");
-
-            migrationBuilder.DropTable(
-                name: "Gifts");
-
-            migrationBuilder.DropTable(
                 name: "MenuItems");
 
             migrationBuilder.DropTable(
                 name: "Orders");
+
+            migrationBuilder.DropTable(
+                name: "AssistanceRequestTypes");
 
             migrationBuilder.DropTable(
                 name: "MenuCategories");

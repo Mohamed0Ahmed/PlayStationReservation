@@ -2,6 +2,7 @@
 using System.Domain.Models;
 using System.Infrastructure.Unit;
 using System.Shared;
+using System.Shared.DTOs.Customers;
 
 namespace System.Application.Services
 {
@@ -16,17 +17,10 @@ namespace System.Application.Services
 
         #region Customers
 
-        //* Register Customer
-        public async Task<ApiResponse<Customer>> RegisterCustomerAsync(string phoneNumber, int storeId)
+        //* Login Customer
+        public async Task<ApiResponse<Customer>> LoginCustomer(string phoneNumber, int storeId)
         {
-            if (string.IsNullOrEmpty(phoneNumber) || storeId <= 0)
-            {
-                return new ApiResponse<Customer>("ادخل رقم الموبايل للتسجيل", 400);
-            }
-
-            var existingCustomer = await _unitOfWork.GetRepository<Customer, int>().FindWithIncludesAsync(
-                c => c.PhoneNumber == phoneNumber && c.StoreId == storeId,
-                includeDeleted: false);
+            var existingCustomer = await _unitOfWork.GetRepository<Customer, int>().FindAsync(c => c.PhoneNumber == phoneNumber && c.StoreId == storeId);
 
             var customer = new Customer
             {
@@ -36,52 +30,51 @@ namespace System.Application.Services
                 CreatedOn = DateTime.UtcNow
             };
 
-            if (existingCustomer == null)
+            if (!existingCustomer.Any())
             {
                 await _unitOfWork.GetRepository<Customer, int>().AddAsync(customer);
                 await _unitOfWork.SaveChangesAsync();
-                return new ApiResponse<Customer>(customer,"تم اضافتك بنجاح", 400);
+                return new ApiResponse<Customer>(customer, "تم اضافتك بنجاح", 201);
             }
 
-            return new ApiResponse<Customer>(customer, "تم التسجيل بنجاح", 201);
+            return new ApiResponse<Customer>(existingCustomer.FirstOrDefault()!, "تم التسجيل بنجاح", 201);
         }
+
 
         //* Get Customer by Phone
         public async Task<ApiResponse<Customer>> GetCustomerByPhoneAsync(string phoneNumber, int storeId)
         {
-            if (string.IsNullOrEmpty(phoneNumber) || storeId <= 0)
-            {
-                return new ApiResponse<Customer>("ادخل رقم التلفون", 400);
-            }
-
             var customers = await _unitOfWork.GetRepository<Customer, int>().FindWithIncludesAsync(
-                c => c.PhoneNumber == phoneNumber && c.StoreId == storeId,
-                includeDeleted: false);
+                c => c.PhoneNumber == phoneNumber && c.StoreId == storeId);
             var customer = customers.FirstOrDefault();
             if (customer == null)
-            {
                 return new ApiResponse<Customer>("العميل غير موجود", 404);
-            }
+
 
             return new ApiResponse<Customer>(customer, "تم جلب بيانات العميل بنجاح");
         }
 
+
         //* Get Customer Points
         public async Task<ApiResponse<int>> GetCustomerPointsAsync(int customerId)
         {
-            if (customerId <= 0)
-            {
-                return new ApiResponse<int>("هذا العميل غير متواجد", 400);
-            }
-
             var customer = await _unitOfWork.GetRepository<Customer, int>().GetByIdAsync(customerId);
             if (customer == null)
-            {
                 return new ApiResponse<int>("العميل غير موجود", 404);
-            }
 
             return new ApiResponse<int>(customer.Points, "تم جلب النقاط بنجاح");
-        }
+        }  
+        
+        //* Get Customer Points
+        //public async Task<ApiResponse<IEnumerable<CustomerDto>>> GetAllCustomers()
+        //{
+        //    var customers = await _unitOfWork.GetRepository<Customer, int>().GetAllAsync();
+        //    if (customers == null)
+        //        return new ApiResponse<IEnumerable<CustomerDto>>("العميل غير موجود", 404);
+
+        //    return new ApiResponse<int>(customer.Points, "تم جلب النقاط بنجاح");
+        //}
+
 
         //* Update Customer
         public async Task<ApiResponse<Customer>> UpdateCustomerAsync(int customerId, string phoneNumber, int storeId)
@@ -115,6 +108,7 @@ namespace System.Application.Services
             return new ApiResponse<Customer>(customer, "تم تعديل بيانات العميل بنجاح");
         }
 
+
         //* Delete Customer
         public async Task<ApiResponse<bool>> DeleteCustomerAsync(int customerId)
         {
@@ -134,6 +128,7 @@ namespace System.Application.Services
 
             return new ApiResponse<bool>(true, "تم حذف العميل بنجاح");
         }
+
 
         //* Restore Customer
         public async Task<ApiResponse<bool>> RestoreCustomerAsync(int customerId)

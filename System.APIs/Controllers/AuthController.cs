@@ -37,27 +37,23 @@ namespace System.APIs.Controllers
         public async Task<IActionResult> Register([FromBody] UserLoginDto userDto)
         {
             if (string.IsNullOrEmpty(userDto.Email) || string.IsNullOrEmpty(userDto.Password))
-            {
-                return BadRequest(new ApiResponse<object>("الإيميل وكلمة المرور مطلوبين", 400));
-            }
+                return BadRequest(new ApiResponse<object>("الإيميل وكلمة المرور مطلوبين", 200));
+
 
             var storesResponse = await _storeService.GetStoresAsync();
             if (!storesResponse.IsSuccess)
-            {
                 return StatusCode(storesResponse.StatusCode, storesResponse);
-            }
+
 
             var store = storesResponse.Data.FirstOrDefault(s => s.OwnerEmail == userDto.Email);
             if (store == null)
-            {
-                return BadRequest(new ApiResponse<object>("الإيميل غير مربوط بأي محل", 400));
-            }
+                return BadRequest(new ApiResponse<object>("الإيميل غير مربوط بأي محل", 200));
+
 
             var existingUser = await _userManager.FindByEmailAsync(userDto.Email);
             if (existingUser != null)
-            {
-                return BadRequest(new ApiResponse<object>("الإيميل مسجل بالفعل", 400));
-            }
+                return BadRequest(new ApiResponse<object>("الإيميل مسجل بالفعل", 200));
+
 
             var user = new IdentityUser
             {
@@ -69,7 +65,7 @@ namespace System.APIs.Controllers
             if (!result.Succeeded)
             {
                 var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                return BadRequest(new ApiResponse<object>($"فشل التسجيل: {errors}", 400));
+                return BadRequest(new ApiResponse<object>($"فشل التسجيل: {errors}", 200));
             }
 
             await _userManager.AddToRoleAsync(user, "Owner");
@@ -82,9 +78,8 @@ namespace System.APIs.Controllers
         {
             var user = await _userManager.FindByEmailAsync(userDto.Email);
             if (user == null || !await _userManager.CheckPasswordAsync(user, userDto.Password))
-            {
-                return Unauthorized(new ApiResponse<object>("الإيميل أو كلمة المرور غير صحيحة", 401));
-            }
+                return Ok(new ApiResponse<object>("الإيميل أو كلمة المرور غير صحيحة", 201));
+
 
             var roles = await _userManager.GetRolesAsync(user);
             var claims = new List<Claim>
@@ -95,9 +90,7 @@ namespace System.APIs.Controllers
             };
 
             foreach (var role in roles)
-            {
                 claims.Add(new Claim(ClaimTypes.Role, role));
-            }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -109,18 +102,16 @@ namespace System.APIs.Controllers
                 expires: DateTime.Now.AddHours(1),
                 signingCredentials: creds);
 
-            return Ok(new
-            {
-                token = new JwtSecurityTokenHandler().WriteToken(token),
-                expiration = token.ValidTo
-            });
+        
+            return Ok(new ApiResponse<object>(user.Email!,new JwtSecurityTokenHandler().WriteToken(token), 201));
         }
 
         [HttpPost("room/login")]
         public async Task<IActionResult> RoomLogin([FromBody] RoomLoginDto roomDto)
         {
+
             if (string.IsNullOrEmpty(roomDto.StoreName) || string.IsNullOrEmpty(roomDto.UserName) || string.IsNullOrEmpty(roomDto.Password))
-                return BadRequest(new ApiResponse<object>("اسم المحل، اسم المستخدم، وكلمة المرور مطلوبة", 400));
+                return BadRequest(new ApiResponse<object>("اسم المحل، اسم المستخدم، وكلمة المرور مطلوبة", 200));
 
 
             var storesResponse = await _storeService.GetStoresAsync();
@@ -130,7 +121,7 @@ namespace System.APIs.Controllers
 
             var store = storesResponse.Data.FirstOrDefault(s => s.Name == roomDto.StoreName);
             if (store == null)
-                return BadRequest(new ApiResponse<object>("المحل غير موجود", 404));
+                return BadRequest(new ApiResponse<object>("المحل غير موجود", 200));
 
 
             var rooms = await _unitOfWork.GetRepository<Room, int>().FindAsync(
@@ -139,7 +130,7 @@ namespace System.APIs.Controllers
             var room = rooms.FirstOrDefault();
 
             if (room == null)
-                return Unauthorized(new ApiResponse<object>("اسم المستخدم أو كلمة المرور غير صحيحة", 401));
+                return Unauthorized(new ApiResponse<object>("اسم المستخدم أو كلمة المرور غير صحيحة", 200));
 
 
             return Ok(new ApiResponse<object>(new

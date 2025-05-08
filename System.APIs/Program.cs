@@ -32,6 +32,16 @@ namespace System.APIs
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend", builder =>
+                {
+                    builder.WithOrigins("https://mohamed0ahmed.github.io", "http://localhost:4200")
+                           .AllowAnyMethod()
+                           .AllowAnyHeader();
+                });
+            });
+
             // Configure JWT Authentication
             var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!);
             builder.Services.AddAuthentication(options =>
@@ -67,6 +77,8 @@ namespace System.APIs
             var app = builder.Build();
 
             #region Middleware
+
+            app.UseCors("AllowFrontend");
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

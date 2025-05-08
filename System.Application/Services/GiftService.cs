@@ -102,16 +102,16 @@ namespace System.Application.Services
         }
 
         //* Get Gifts
-        public async Task<ApiResponse<List<Gift>>> GetGiftsAsync(int storeId)
+        public async Task<ApiResponse<IEnumerable<Gift>>> GetGiftsAsync(int storeId)
         {
 
             var gifts = await _unitOfWork.GetRepository<Gift, int>().FindAsync(g => g.StoreId == storeId);
 
             if (!gifts.Any())
-                return new ApiResponse<List<Gift>>("لا يوجد هدايا", 404);
+                return new ApiResponse<IEnumerable<Gift>>("لا يوجد هدايا", 404);
 
 
-            return new ApiResponse<List<Gift>>(gifts.ToList(), "تم جلب الهدايا بنجاح");
+            return new ApiResponse<IEnumerable<Gift>>(gifts, "تم جلب الهدايا بنجاح");
         }
 
         //* Get Total Gifts Count

@@ -107,19 +107,19 @@ namespace System.Application.Services
         }
 
         //* Get Categories
-        public async Task<ApiResponse<List<CategoryDto>>> GetCategoriesAsync(int storeId)
+        public async Task<ApiResponse<IEnumerable<CategoryDto>>> GetCategoriesAsync(int storeId)
         {
             var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
             if (store == null)
-                return new ApiResponse<List<CategoryDto>>("No Store To Get Categories", 404);
+                return new ApiResponse<IEnumerable<CategoryDto>>("No Store To Get Categories", 404);
 
 
             var categories = await _unitOfWork.GetRepository<Category, int>().FindAsync(c => c.StoreId == storeId);
             if (!categories.Any())
-                return new ApiResponse<List<CategoryDto>>("لا يوجد أقسام", 404);
+                return new ApiResponse<IEnumerable<CategoryDto>>("لا يوجد أقسام", 404);
 
-            var categoriesDto = categories.Adapt<List<CategoryDto>>();
-            return new ApiResponse<List<CategoryDto>>(categoriesDto, "تم جلب الأقسام بنجاح");
+            var categoriesDto = categories.Adapt<IEnumerable<CategoryDto>>();
+            return new ApiResponse<IEnumerable<CategoryDto>>(categoriesDto, "تم جلب الأقسام بنجاح");
         }
 
         #endregion
@@ -214,33 +214,33 @@ namespace System.Application.Services
         }
 
         //* Get Items
-        public async Task<ApiResponse<List<ItemDto>>> GetItemsAsync(int categoryId)
+        public async Task<ApiResponse<IEnumerable<ItemDto>>> GetItemsAsync(int categoryId)
         {
             var category = await _unitOfWork.GetRepository<Category, int>().FindAsync(c => c.Id == categoryId);
             if (!category.Any())
-                return new ApiResponse<List<ItemDto>>("هذا القسم غير موجود", 404);
+                return new ApiResponse<IEnumerable<ItemDto>>("هذا القسم غير موجود", 404);
 
 
             var items = await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(i => i.CategoryId == categoryId);
 
             if (!items.Any())
-                return new ApiResponse<List<ItemDto>>("لا يوجد أصناف", 404);
+                return new ApiResponse<IEnumerable<ItemDto>>("لا يوجد أصناف", 404);
 
-            var itemsDto = items.Adapt<List<ItemDto>>();
-            return new ApiResponse<List<ItemDto>>(itemsDto, "تم جلب الأصناف بنجاح");
+            var itemsDto = items.Adapt<IEnumerable<ItemDto>>();
+            return new ApiResponse<IEnumerable<ItemDto>>(itemsDto, "تم جلب الأصناف بنجاح");
         }
 
         //* Get Total Items Count
-        public async Task<ApiResponse<List<ItemDto>>> GetAllItemsAsync(int storeId)
+        public async Task<ApiResponse<IEnumerable<ItemDto>>> GetAllItemsAsync(int storeId)
         {
             var items = await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(
                 mi => mi.StoreId == storeId);
             if (!items.Any())
-                return new ApiResponse<List<ItemDto>>("لم يتم اضافة اي منتج حاليا");
+                return new ApiResponse<IEnumerable<ItemDto>>("لم يتم اضافة اي منتج حاليا");
 
 
-            var itemsDto = items.Adapt<List<ItemDto>>();
-            return new ApiResponse<List<ItemDto>>(itemsDto, "تم جلب كل الأصناف بنجاح");
+            var itemsDto = items.Adapt<IEnumerable<ItemDto>>();
+            return new ApiResponse<IEnumerable<ItemDto>>(itemsDto, "تم جلب كل الأصناف بنجاح");
         }
 
         #endregion

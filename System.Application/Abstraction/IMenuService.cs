@@ -10,12 +10,12 @@ namespace System.Application.Abstraction
         Task<ApiResponse<CategoryDto>> UpdateCategoryAsync(int categoryId, string name);
         Task<ApiResponse<bool>> DeleteCategoryAsync(int categoryId);
         Task<ApiResponse<bool>> RestoreCategoryAsync(int categoryId);
-        Task<ApiResponse<List<CategoryDto>>> GetCategoriesAsync(int storeId);
+        Task<ApiResponse<IEnumerable<CategoryDto>>> GetCategoriesAsync(int storeId);
         Task<ApiResponse<ItemDto>> CreateItemAsync(string name, decimal price, int pointsRequired, int categoryId);
         Task<ApiResponse<ItemDto>> UpdateItemAsync(int itemId, string name, decimal price, int pointsRequired);
         Task<ApiResponse<bool>> DeleteItemAsync(int itemId);
         Task<ApiResponse<bool>> RestoreItemAsync(int itemId);
-        Task<ApiResponse<List<ItemDto>>> GetItemsAsync(int categoryId);
-        Task<ApiResponse<List<ItemDto>>> GetAllItemsAsync(int storeId);
+        Task<ApiResponse<IEnumerable<ItemDto>>> GetItemsAsync(int categoryId);
+        Task<ApiResponse<IEnumerable<ItemDto>>> GetAllItemsAsync(int storeId);
     }
 }

@@ -24,7 +24,6 @@ namespace System.APIs.Controllers
         [AllowAnonymous] // Allow customers to create orders
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
         {
-
             var response = await _orderService.CreateOrderAsync(request.PhoneNumber, request.RoomId, request.Items);
             return StatusCode(response.StatusCode, response);
         }
@@ -41,22 +40,17 @@ namespace System.APIs.Controllers
         //* Get All Orders
         [HttpGet("store/{storeId}")]
         [Authorize(Roles = "Owner")]
-        public async Task<IActionResult> GetOrders(int storeId, [FromQuery] bool includeDeleted = false)
+        public async Task<IActionResult> GetOrders(int storeId)
         {
-            var response = await _orderService.GetOrdersAsync(storeId, includeDeleted);
+            var response = await _orderService.GetOrdersAsync(storeId);
             return StatusCode(response.StatusCode, response);
         }
 
         //* Approve Order
         [HttpPut("approve/{id}")]
         [Authorize(Roles = "Owner")]
-        public async Task<IActionResult> ApproveOrder(int id, [FromBody] decimal totalAmount)
+        public async Task<IActionResult> ApproveOrder(int id)
         {
-            if (totalAmount < 0)
-            {
-                return BadRequest(new ApiResponse<Order>("المبلغ الإجمالي يجب أن يكون صالحًا", 400));
-            }
-
             var response = await _orderService.ApproveOrderAsync(id);
             return StatusCode(response.StatusCode, response);
         }
@@ -66,11 +60,6 @@ namespace System.APIs.Controllers
         [Authorize(Roles = "Owner")]
         public async Task<IActionResult> RejectOrder(int id, [FromBody] string rejectionReason)
         {
-            if (string.IsNullOrEmpty(rejectionReason))
-            {
-                return BadRequest(new ApiResponse<Order>("سبب الرفض مطلوب", 400));
-            }
-
             var response = await _orderService.RejectOrderAsync(id, rejectionReason);
             return StatusCode(response.StatusCode, response);
         }

@@ -98,11 +98,11 @@ namespace System.Application.Services
         }
 
         //* Get All Assistance Request Types
-        public async Task<ApiResponse<List<AssistanceDto>>> GetAllAssistanceRequestTypesAsync(int storeId)
+        public async Task<ApiResponse<IEnumerable<AssistanceDto>>> GetAllAssistanceRequestTypesAsync(int storeId)
         {
             var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
             if (store == null)
-                return new ApiResponse<List<AssistanceDto>>("No Store With This Id", 400);
+                return new ApiResponse<IEnumerable<AssistanceDto>>("No Store With This Id", 400);
 
             var customTypes = await _unitOfWork.GetRepository<AssistanceRequestType, int>()
                 .FindAsync(art => art.StoreId == storeId);
@@ -110,26 +110,26 @@ namespace System.Application.Services
             var defaultTypes = await _unitOfWork.GetRepository<DefaultAssistanceRequestType, int>()
                 .GetAllAsync();
 
-            var assistanceDtoList = new List<AssistanceDto>();
+            var assistanceDtoIEnumerable = new List<AssistanceDto>();
 
             // custom types
-            assistanceDtoList.AddRange(customTypes.Select(ct => new AssistanceDto
+            assistanceDtoIEnumerable.AddRange(customTypes.Select(ct => new AssistanceDto
             {
                 Id = ct.Id,
                 Name = ct.Name,
             }));
 
             // default types
-            assistanceDtoList.AddRange(defaultTypes.Select(dt => new AssistanceDto
+            assistanceDtoIEnumerable.AddRange(defaultTypes.Select(dt => new AssistanceDto
             {
                 Id = dt.Id,
                 Name = dt.Name,
             }));
 
-            if (assistanceDtoList.Count == 0)
-                return new ApiResponse<List<AssistanceDto>>("لا يوجد أنواع مساعدة", 404);
+            if (assistanceDtoIEnumerable.Count == 0)
+                return new ApiResponse<IEnumerable<AssistanceDto>>("لا يوجد أنواع مساعدة", 404);
 
-            return new ApiResponse<List<AssistanceDto>>(assistanceDtoList, "تم جلب أنواع المساعدة بنجاح");
+            return new ApiResponse<IEnumerable<AssistanceDto>>(assistanceDtoIEnumerable, "تم جلب أنواع المساعدة بنجاح");
         }
 
 
@@ -233,30 +233,30 @@ namespace System.Application.Services
         }
 
         //* Get Default Assistance Types
-        public async Task<ApiResponse<List<AssistanceDto>>> GetDefaultAssistanceTypesAsync()
+        public async Task<ApiResponse<IEnumerable<AssistanceDto>>> GetDefaultAssistanceTypesAsync()
         {
             var defaultTypes = await _unitOfWork.GetRepository<DefaultAssistanceRequestType, int>().GetAllAsync();
 
             if (!defaultTypes.Any())
-                return new ApiResponse<List<AssistanceDto>>("لا يوجد أنواع مساعدة ثابتة حاليًا", 404);
+                return new ApiResponse<IEnumerable<AssistanceDto>>("لا يوجد أنواع مساعدة ثابتة حاليًا", 404);
 
-            var types = defaultTypes.Adapt<List<AssistanceDto>>();
+            var types = defaultTypes.Adapt<IEnumerable<AssistanceDto>>();
 
 
-            return new ApiResponse<List<AssistanceDto>>(types, "تم جلب أنواع المساعدة الثابتة بنجاح");
+            return new ApiResponse<IEnumerable<AssistanceDto>>(types, "تم جلب أنواع المساعدة الثابتة بنجاح");
         }
 
         //* Get Default deleted Assistance Types
-        public async Task<ApiResponse<List<AssistanceDto>>> GetDefaultDeletedAssistanceTypesAsync()
+        public async Task<ApiResponse<IEnumerable<AssistanceDto>>> GetDefaultDeletedAssistanceTypesAsync()
         {
             var defaultTypes = await _unitOfWork.GetRepository<DefaultAssistanceRequestType, int>().GetAllAsync(onlyDeleted: true);
 
             if (!defaultTypes.Any())
-                return new ApiResponse<List<AssistanceDto>>("لا يوجد أنواع مساعدة محذوفة حاليًا", 404);
+                return new ApiResponse<IEnumerable<AssistanceDto>>("لا يوجد أنواع مساعدة محذوفة حاليًا", 404);
 
-            var types = defaultTypes.Adapt<List<AssistanceDto>>();
+            var types = defaultTypes.Adapt<IEnumerable<AssistanceDto>>();
 
-            return new ApiResponse<List<AssistanceDto>>(types, "تم جلب أنواع المساعدة المحذوفة بنجاح");
+            return new ApiResponse<IEnumerable<AssistanceDto>>(types, "تم جلب أنواع المساعدة المحذوفة بنجاح");
         }
 
         #endregion
