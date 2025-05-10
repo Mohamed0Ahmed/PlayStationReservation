@@ -87,7 +87,7 @@ namespace System.APIs
                 app.UseSwaggerUI();
             }
             app.UseExceptionHandlerMiddleware();
-
+            app.UseStaticFiles();
             app.MapHub<NotificationHub>("/notificationHub");
 
             app.UseHttpsRedirection();

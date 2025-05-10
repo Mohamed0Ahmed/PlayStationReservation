@@ -100,6 +100,10 @@ namespace System.Infrastructure.Repositories
             entity.IsDeleted = true;
             entity.DeletedOn = DateTime.UtcNow;
             _dbSet.Update(entity);
+        } 
+        public void DeleteHard(T entity)
+        {
+            _dbSet.Remove(entity);
         }
 
         public async Task AddRangeAsync(IEnumerable<T> entities)

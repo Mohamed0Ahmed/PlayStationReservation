@@ -47,12 +47,12 @@ namespace System.APIs.Controllers
 
             var store = storesResponse.Data.FirstOrDefault(s => s.OwnerEmail == userDto.Email);
             if (store == null)
-                return BadRequest(new ApiResponse<object>("الإيميل غير مربوط بأي محل", 200));
+                return Ok(new ApiResponse<object>("الإيميل غير مربوط بأي محل", 200));
 
 
             var existingUser = await _userManager.FindByEmailAsync(userDto.Email);
             if (existingUser != null)
-                return BadRequest(new ApiResponse<object>("الإيميل مسجل بالفعل", 200));
+                return Ok(new ApiResponse<object>("الإيميل مسجل بالفعل", 200));
 
 
             var user = new IdentityUser
@@ -65,7 +65,7 @@ namespace System.APIs.Controllers
             if (!result.Succeeded)
             {
                 var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                return BadRequest(new ApiResponse<object>($"فشل التسجيل: {errors}", 200));
+                return Ok(new ApiResponse<object>($"فشل التسجيل: {errors}", 200));
             }
 
             await _userManager.AddToRoleAsync(user, "Owner");
@@ -80,14 +80,21 @@ namespace System.APIs.Controllers
             if (user == null || !await _userManager.CheckPasswordAsync(user, userDto.Password))
                 return Ok(new ApiResponse<object>("الإيميل أو كلمة المرور غير صحيحة", 201));
 
+            var storesResponse = await _storeService.GetStoresAsync();
+            if (!storesResponse.IsSuccess)
+                return StatusCode(storesResponse.StatusCode, storesResponse);
+
+            var store = storesResponse.Data.FirstOrDefault(s => s.OwnerEmail == userDto.Email);
+            var storeId = store != null ? store.Id.ToString() : "";
 
             var roles = await _userManager.GetRolesAsync(user);
             var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.Email!),
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
+                  {
+                      new(ClaimTypes.Name, user.Email!),
+                      new(JwtRegisteredClaimNames.Sub, user.Id),
+                      new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                      new("storeId", storeId)
+                  };
 
             foreach (var role in roles)
                 claims.Add(new Claim(ClaimTypes.Role, role));
@@ -100,10 +107,10 @@ namespace System.APIs.Controllers
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
                 expires: DateTime.Now.AddHours(1),
-                signingCredentials: creds);
+                signingCredentials: creds
+            );
 
-        
-            return Ok(new ApiResponse<object>(user.Email!,new JwtSecurityTokenHandler().WriteToken(token), 201));
+            return Ok(new ApiResponse<object>(user.Email!, new JwtSecurityTokenHandler().WriteToken(token), 201));
         }
 
         [HttpPost("room/login")]

@@ -27,6 +27,14 @@ namespace System.APIs.Controllers
             var response = await _menuService.GetCategoriesAsync(storeId);
             return StatusCode(response.StatusCode, response);
         }
+        //* Get deleted Categories
+        [HttpGet("categories/deleted/{storeId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetDeletedCategories(int storeId)
+        {
+            var response = await _menuService.GetDeletedCategoriesAsync(storeId);
+            return StatusCode(response.StatusCode, response);
+        }
 
         //* Create Category
         [HttpPost("categories")]
@@ -38,9 +46,9 @@ namespace System.APIs.Controllers
 
         //* Update Category
         [HttpPut("categories/{id}")]
-        public async Task<IActionResult> UpdateCategory(int id, [FromBody] string name)
+        public async Task<IActionResult> UpdateCategory(int id, [FromBody] CategoryDto category)
         {
-            var response = await _menuService.UpdateCategoryAsync(id, name);
+            var response = await _menuService.UpdateCategoryAsync(id, category.Name);
             return StatusCode(response.StatusCode, response);
         }
 
@@ -95,6 +103,14 @@ namespace System.APIs.Controllers
         {
             var response = await _menuService.DeleteItemAsync(id);
             return StatusCode(response.StatusCode, response);
+        } 
+
+        //* Delete Hard Item
+        [HttpDelete("items/hard/{id}")]
+        public async Task<IActionResult> DeleteHardItem(int id)
+        {
+            var response = await _menuService.DeleteHardItemAsync(id);
+            return StatusCode(response.StatusCode, response);
         }
 
         //* Restore Item
@@ -111,6 +127,14 @@ namespace System.APIs.Controllers
         public async Task<IActionResult> GetItems(int categoryId)
         {
             var response = await _menuService.GetItemsAsync(categoryId);
+            return StatusCode(response.StatusCode, response);
+        }  
+        
+        //* Get Deleted Items
+        [HttpGet("items/deleted/{categoryId}")]
+        public async Task<IActionResult> GetDeletedItems(int categoryId)
+        {
+            var response = await _menuService.GetDeletedItemsAsync(categoryId);
             return StatusCode(response.StatusCode, response);
         }
 

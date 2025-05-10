@@ -17,6 +17,7 @@ namespace System.Infrastructure.Repositories
         void Update(T entity);
         void UpdateRange(IEnumerable<T> entities);            
         void Delete(T entity);
+        void DeleteHard(T entity);
         void DeleteRange(IEnumerable<T> entities);             
         Task RestoreAsync(TKey id);
         void RestoreRange(IEnumerable<T> entities);
