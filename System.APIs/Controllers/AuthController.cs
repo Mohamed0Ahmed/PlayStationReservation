@@ -39,21 +39,17 @@ namespace System.APIs.Controllers
             if (string.IsNullOrEmpty(userDto.Email) || string.IsNullOrEmpty(userDto.Password))
                 return BadRequest(new ApiResponse<object>("الإيميل وكلمة المرور مطلوبين", 200));
 
-
             var storesResponse = await _storeService.GetStoresAsync();
             if (!storesResponse.IsSuccess)
                 return StatusCode(storesResponse.StatusCode, storesResponse);
-
 
             var store = storesResponse.Data.FirstOrDefault(s => s.OwnerEmail == userDto.Email);
             if (store == null)
                 return Ok(new ApiResponse<object>("الإيميل غير مربوط بأي محل", 200));
 
-
             var existingUser = await _userManager.FindByEmailAsync(userDto.Email);
             if (existingUser != null)
                 return Ok(new ApiResponse<object>("الإيميل مسجل بالفعل", 200));
-
 
             var user = new IdentityUser
             {
@@ -89,12 +85,12 @@ namespace System.APIs.Controllers
 
             var roles = await _userManager.GetRolesAsync(user);
             var claims = new List<Claim>
-                  {
-                      new(ClaimTypes.Name, user.Email!),
-                      new(JwtRegisteredClaimNames.Sub, user.Id),
-                      new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                      new("storeId", storeId)
-                  };
+            {
+                new(ClaimTypes.Name, user.Email!),
+                new(JwtRegisteredClaimNames.Sub, user.Id),
+                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new("storeId", storeId)
+            };
 
             foreach (var role in roles)
                 claims.Add(new Claim(ClaimTypes.Role, role));
@@ -106,7 +102,7 @@ namespace System.APIs.Controllers
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddHours(1),
+                expires: DateTime.Now.AddDays(500),
                 signingCredentials: creds
             );
 
@@ -116,20 +112,16 @@ namespace System.APIs.Controllers
         [HttpPost("room/login")]
         public async Task<IActionResult> RoomLogin([FromBody] RoomLoginDto roomDto)
         {
-
             if (string.IsNullOrEmpty(roomDto.StoreName) || string.IsNullOrEmpty(roomDto.UserName) || string.IsNullOrEmpty(roomDto.Password))
                 return BadRequest(new ApiResponse<object>("اسم المحل، اسم المستخدم، وكلمة المرور مطلوبة", 200));
-
 
             var storesResponse = await _storeService.GetStoresAsync();
             if (!storesResponse.IsSuccess)
                 return StatusCode(storesResponse.StatusCode, storesResponse);
 
-
             var store = storesResponse.Data.FirstOrDefault(s => s.Name == roomDto.StoreName);
             if (store == null)
                 return BadRequest(new ApiResponse<object>("المحل غير موجود", 200));
-
 
             var rooms = await _unitOfWork.GetRepository<Room, int>().FindAsync(
                 r => r.StoreId == store.Id && r.Username == roomDto.UserName && r.Password == roomDto.Password);
@@ -139,14 +131,33 @@ namespace System.APIs.Controllers
             if (room == null)
                 return Unauthorized(new ApiResponse<object>("اسم المستخدم أو كلمة المرور غير صحيحة", 200));
 
+            var claims = new List<Claim>
+            {
+                new("storeId", store.Id.ToString()),
+                new("roomId", room.Id.ToString()),
+                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddDays(500),
+                signingCredentials: creds
+            );
+
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
             return Ok(new ApiResponse<object>(new
             {
+                token = tokenString,
                 storeId = store.Id,
                 roomId = room.Id,
                 message = "تم تسجيل الدخول بنجاح، يمكنك الآن طلب من الصفحة"
             }, "success", 200));
         }
-
     }
 }

@@ -1,4 +1,6 @@
-﻿using System.Application.Abstraction;
+﻿using Mapster;
+using Microsoft.EntityFrameworkCore;
+using System.Application.Abstraction;
 using System.Domain.Enums;
 using System.Domain.Models;
 using System.Infrastructure.Unit;
@@ -25,20 +27,21 @@ namespace System.Application.Services
         {
             var room = await _unitOfWork.GetRepository<Room, int>().GetByIdAsync(roomId);
             if (room == null)
-                return new ApiResponse<Order>("الغرفة غير موجودة", 404);
+                return new ApiResponse<Order>("الغرفة غير موجودة", 200);
 
             var customers = await _unitOfWork.GetRepository<Customer, int>().FindAsync(
                 c => c.PhoneNumber == phoneNumber && c.StoreId == room.StoreId);
             var customer = customers.FirstOrDefault();
 
             if (customer == null)
-                return new ApiResponse<Order>("العميل غير مسجل، سجل برقم تليفونك أولا", 400);
+                return new ApiResponse<Order>("العميل غير مسجل، سجل برقم تليفونك أولا", 200);
 
             await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var order = new Order
                 {
+                    CustomerNumber = customer.PhoneNumber,
                     StoreId = customer.StoreId,
                     CustomerId = customer.Id,
                     RoomId = roomId,
@@ -58,7 +61,7 @@ namespace System.Application.Services
                     if (menuItem == null)
                     {
                         await _unitOfWork.RollbackTransactionAsync();
-                        return new ApiResponse<Order>("هذا الصنف غير موجود", 404);
+                        return new ApiResponse<Order>("هذا الصنف غير موجود", 200);
                     }
 
                     var orderItem = new OrderItem
@@ -93,44 +96,46 @@ namespace System.Application.Services
 
 
         //* Get Pending Orders
-        public async Task<ApiResponse<IEnumerable<Order>>> GetPendingOrdersAsync(int storeId)
+        public async Task<ApiResponse<IEnumerable<OrderDto>>> GetPendingOrdersAsync(int storeId)
         {
-            var orders = await _unitOfWork.GetRepository<Order, int>().FindAsync(o => o.StoreId == storeId && o.Status == Status.Pending);
+            var orders = await _unitOfWork.GetRepository<Order, int>().FindWithIncludesAsync(o => o.StoreId == storeId && o.Status == Status.Pending , include: o=>o.Include(o=>o.OrderItems));
 
             if (!orders.Any())
-                return new ApiResponse<IEnumerable<Order>>("لا يوجد طلبات معلقة", 404);
+                return new ApiResponse<IEnumerable<OrderDto>>("لا يوجد طلبات معلقة", 200);
 
+            var orderDto = orders.Adapt<List<OrderDto>>();
 
-            return new ApiResponse<IEnumerable<Order>>(orders, "تم جلب الطلبات المعلقة بنجاح");
+            return new ApiResponse<IEnumerable<OrderDto>>(orderDto, "تم جلب الطلبات المعلقة بنجاح");
         }
 
         //* Get All Orders
-        public async Task<ApiResponse<IEnumerable<Order>>> GetOrdersAsync(int storeId, bool includeDeleted = false)
+        public async Task<ApiResponse<IEnumerable<OrderDto>>> GetOrdersAsync(int storeId, bool includeDeleted = false)
         {
             var orders = await _unitOfWork.GetRepository<Order, int>().FindWithIncludesAsync(
-                predicate: o => o.StoreId == storeId);
+                predicate: o => o.StoreId == storeId , include: o => o.Include(o => o.OrderItems));
+
 
             if (!orders.Any())
-                return new ApiResponse<IEnumerable<Order>>("لا يوجد طلبات", 404);
+                return new ApiResponse<IEnumerable<OrderDto>>("لا يوجد طلبات", 200);
 
-
-            return new ApiResponse<IEnumerable<Order>>(orders, "تم جلب الطلبات بنجاح");
+            var orderDto = orders.Adapt<List<OrderDto>>();
+            return new ApiResponse<IEnumerable<OrderDto>>(orderDto, "تم جلب الطلبات بنجاح");
         }
 
         //* Approve Order
-        public async Task<ApiResponse<Order>> ApproveOrderAsync(int orderId)
+        public async Task<ApiResponse<OrderDto>> ApproveOrderAsync(int orderId)
         {
             var order = await _unitOfWork.GetRepository<Order, int>().GetByIdAsync(orderId);
             if (order == null)
-                return new ApiResponse<Order>("الطلب غير موجود", 404);
+                return new ApiResponse<OrderDto>("الطلب غير موجود", 200);
 
             if (order.Status != Status.Pending)
-                return new ApiResponse<Order>("لا يمكن الموافقة على طلب غير معلق", 400);
+                return new ApiResponse<OrderDto>("لا يمكن الموافقة على طلب غير معلق", 200);
 
             var customers = await _unitOfWork.GetRepository<Customer, int>().FindAsync(c => c.Id == order.CustomerId);
             var customer = customers.FirstOrDefault();
             if (customer == null)
-                return new ApiResponse<Order>(order, "لا يوجد عميل بهذا الرقم");
+                return new ApiResponse<OrderDto>( "لا يوجد عميل بهذا الرقم");
 
 
             order.Status = Status.Accepted;
@@ -152,24 +157,25 @@ namespace System.Application.Services
             await _unitOfWork.SaveChangesAsync();
             await _notificationService.SendOrderStatusUpdateAsync(order.RoomId, true);
 
-            return new ApiResponse<Order>(order, "تم الموافقة على الطلب بنجاح");
+            var orderDto = order.Adapt<OrderDto>();
+            return new ApiResponse<OrderDto>(orderDto, "تم الموافقة على الطلب بنجاح");
         }
 
         //* Reject Order
-        public async Task<ApiResponse<Order>> RejectOrderAsync(int orderId, string rejectionReason)
+        public async Task<ApiResponse<OrderDto>> RejectOrderAsync(int orderId, string rejectionReason)
         {
             if (orderId <= 0 || string.IsNullOrEmpty(rejectionReason))
-                return new ApiResponse<Order>("  سبب الرفض غير موجود", 400);
+                return new ApiResponse<OrderDto>("  سبب الرفض غير موجود", 200);
 
 
             var order = await _unitOfWork.GetRepository<Order, int>().GetByIdWithIncludesAsync(
                 orderId);
             if (order == null)
-                return new ApiResponse<Order>("الطلب غير موجود", 404);
+                return new ApiResponse<OrderDto>("الطلب غير موجود", 200);
 
 
             if (order.Status != Status.Pending)
-                return new ApiResponse<Order>("لا يمكن رفض طلب غير معلق", 400);
+                return new ApiResponse<OrderDto>("لا يمكن رفض طلب غير معلق", 200);
 
 
             order.Status = Status.Rejected;
@@ -177,9 +183,10 @@ namespace System.Application.Services
             order.LastModifiedOn = DateTime.UtcNow;
             _unitOfWork.GetRepository<Order, int>().Update(order);
             await _unitOfWork.SaveChangesAsync();
+            var orderDto = order.Adapt<OrderDto>();
 
             await _notificationService.SendOrderStatusUpdateAsync(order.RoomId, false, rejectionReason);
-            return new ApiResponse<Order>(order, "تم رفض الطلب بنجاح");
+            return new ApiResponse<OrderDto>(orderDto, "تم رفض الطلب بنجاح");
         }
 
         //* Get Total Orders Count

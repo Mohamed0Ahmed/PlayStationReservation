@@ -277,7 +277,7 @@ namespace System.Application.Services
             return new ApiResponse<IEnumerable<ItemDto>>(itemsDto, "تم جلب الأصناف بنجاح");
         }
 
-        //* Get Total Items Count
+        //* Get All Items Count
         public async Task<ApiResponse<IEnumerable<ItemDto>>> GetAllItemsAsync(int storeId)
         {
             var items = await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(

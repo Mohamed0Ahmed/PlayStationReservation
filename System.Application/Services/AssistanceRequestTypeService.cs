@@ -26,7 +26,7 @@ namespace System.Application.Services
                 return new ApiResponse<AssistanceDto>("No Store With This Id", 200);
 
             var existingType = await _unitOfWork.GetRepository<AssistanceRequestType, int>().FindAsync(
-                art => art.Name == name && art.StoreId == storeId);
+                art => art.Name == name && art.StoreId == storeId , includeDeleted :true);
 
             if (existingType.Any())
                 return new ApiResponse<AssistanceDto>("نوع المساعدة موجود بالفعل", 200);
@@ -45,6 +45,7 @@ namespace System.Application.Services
 
             return new ApiResponse<AssistanceDto>(assistanceDto, "تم إضافة نوع المساعدة بنجاح", 201);
         }
+
 
         //* Update Assistance Request Type
         public async Task<ApiResponse<AssistanceDto>> UpdateAssistanceRequestTypeAsync(int typeId, string name)
@@ -69,6 +70,7 @@ namespace System.Application.Services
             return new ApiResponse<AssistanceDto>(assistanceDto, "تم تعديل نوع المساعدة بنجاح");
         }
 
+
         //* Delete Assistance Request Type
         public async Task<ApiResponse<bool>> DeleteAssistanceRequestTypeAsync(int typeId)
         {
@@ -83,6 +85,7 @@ namespace System.Application.Services
             return new ApiResponse<bool>(true, "تم حذف نوع المساعدة بنجاح");
         }
 
+
         //* Restore Assistance Request Type
         public async Task<ApiResponse<bool>> RestoreAssistanceRequestTypeAsync(int typeId)
         {
@@ -96,6 +99,7 @@ namespace System.Application.Services
 
             return new ApiResponse<bool>(true, "تم استرجاع  المساعدة بنجاح");
         }
+
 
         //* Get All Assistance Request Types
         public async Task<ApiResponse<IEnumerable<AssistanceDto>>> GetAllAssistanceRequestTypesAsync(int storeId)
@@ -130,6 +134,24 @@ namespace System.Application.Services
                 return new ApiResponse<IEnumerable<AssistanceDto>>("لا يوجد أنواع مساعدة", 200);
 
             return new ApiResponse<IEnumerable<AssistanceDto>>(assistanceDtoIEnumerable, "تم جلب أنواع المساعدة بنجاح");
+        }  
+        
+        //* Get All Deleted Assistance Request Types
+        public async Task<ApiResponse<IEnumerable<AssistanceDto>>> GetAllDeletedAssistanceRequestTypesAsync(int storeId)
+        {
+            var store = await _unitOfWork.GetRepository<Store, int>().GetByIdAsync(storeId);
+            if (store == null)
+                return new ApiResponse<IEnumerable<AssistanceDto>>("No Store With This Id", 200);
+
+            var customTypes = await _unitOfWork.GetRepository<AssistanceRequestType, int>()
+                .FindAsync(art => art.StoreId == storeId , onlyDeleted:true);
+
+            if (!customTypes.Any())
+                return new ApiResponse<IEnumerable<AssistanceDto>>("لا يوجد أنواع مساعدة محذوفة ", 200);
+
+            var customTypesDto = customTypes.Adapt<IEnumerable<AssistanceDto>>();
+
+            return new ApiResponse<IEnumerable<AssistanceDto>>(customTypesDto, "تم جلب أنواع المساعدة بنجاح");
         }
 
 
@@ -174,6 +196,7 @@ namespace System.Application.Services
             return new ApiResponse<DefaultAssistanceRequestType>(defaultType, "تم إضافة نوع المساعدة الثابتة بنجاح", 201);
         }
 
+
         //* Update Default Assistance Type
         public async Task<ApiResponse<DefaultAssistanceRequestType>> UpdateDefaultAssistanceTypeAsync(int typeId, string name)
         {
@@ -196,6 +219,7 @@ namespace System.Application.Services
             return new ApiResponse<DefaultAssistanceRequestType>(defaultType, "تم تعديل نوع المساعدة الثابتة بنجاح");
         }
 
+
         //* Delete Default Assistance Type
         public async Task<ApiResponse<bool>> DeleteDefaultAssistanceTypeAsync(int typeId)
         {
@@ -213,6 +237,7 @@ namespace System.Application.Services
 
             return new ApiResponse<bool>(true, "تم حذف نوع المساعدة الثابتة بنجاح");
         }
+
 
         //* Restore Default Assistance Type
         public async Task<ApiResponse<bool>> RestoreDefaultAssistanceTypeAsync(int typeId)
@@ -232,6 +257,7 @@ namespace System.Application.Services
             return new ApiResponse<bool>(true, "تم استرجاع نوع المساعدة الثابتة بنجاح");
         }
 
+
         //* Get Default Assistance Types
         public async Task<ApiResponse<IEnumerable<AssistanceDto>>> GetDefaultAssistanceTypesAsync()
         {
@@ -245,6 +271,7 @@ namespace System.Application.Services
 
             return new ApiResponse<IEnumerable<AssistanceDto>>(types, "تم جلب أنواع المساعدة الثابتة بنجاح");
         }
+
 
         //* Get Default deleted Assistance Types
         public async Task<ApiResponse<IEnumerable<AssistanceDto>>> GetDefaultDeletedAssistanceTypesAsync()

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Application.Abstraction;
-using System.Domain.Models;
 using System.Shared;
 using System.Shared.DTOs.Orders;
 
@@ -9,6 +8,7 @@ namespace System.APIs.Controllers
 {
     [Route("api/orders")]
     [ApiController]
+    [Authorize] 
     public class OrderController : ControllerBase
     {
         private readonly IOrderService _orderService;
@@ -20,11 +20,22 @@ namespace System.APIs.Controllers
 
         #region Orders
 
+        //* Create Order
         [HttpPost]
-        [AllowAnonymous] // Allow customers to create orders
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
         {
-            var response = await _orderService.CreateOrderAsync(request.PhoneNumber, request.RoomId, request.Items);
+            var roomIdClaim = User.FindFirst("roomId")?.Value;
+            var storeIdClaim = User.FindFirst("storeId")?.Value;
+
+            if (string.IsNullOrEmpty(roomIdClaim) || string.IsNullOrEmpty(storeIdClaim))
+                return Unauthorized(new ApiResponse<object>("التوكن غير صالح أو لا يحتوي على بيانات الغرفة", 200));
+
+            if (!int.TryParse(roomIdClaim, out int roomId) || !int.TryParse(storeIdClaim, out int storeId))
+                return BadRequest(new ApiResponse<object>("بيانات الغرفة أو المتجر غير صالحة", 200));
+
+            var response = await _orderService.CreateOrderAsync(request.PhoneNumber, roomId, request.Items);
+
+
             return StatusCode(response.StatusCode, response);
         }
 
@@ -37,6 +48,7 @@ namespace System.APIs.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
+
         //* Get All Orders
         [HttpGet("store/{storeId}")]
         [Authorize(Roles = "Owner")]
@@ -45,6 +57,7 @@ namespace System.APIs.Controllers
             var response = await _orderService.GetOrdersAsync(storeId);
             return StatusCode(response.StatusCode, response);
         }
+
 
         //* Approve Order
         [HttpPut("approve/{id}")]
@@ -55,14 +68,16 @@ namespace System.APIs.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
+
         //* Reject Order
         [HttpPut("reject/{id}")]
         [Authorize(Roles = "Owner")]
-        public async Task<IActionResult> RejectOrder(int id, [FromBody] string rejectionReason)
+        public async Task<IActionResult> RejectOrder(int id, [FromBody] RejectDto rejectDto)
         {
-            var response = await _orderService.RejectOrderAsync(id, rejectionReason);
+            var response = await _orderService.RejectOrderAsync(id, rejectDto.Reason);
             return StatusCode(response.StatusCode, response);
         }
+
 
         //* Get Total Orders Count
         [HttpGet("count/{storeId}")]
@@ -76,4 +91,3 @@ namespace System.APIs.Controllers
         #endregion
     }
 }
-

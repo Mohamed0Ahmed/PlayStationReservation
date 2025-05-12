@@ -7,7 +7,7 @@ namespace System.APIs.Controllers
 {
     [Route("api/menus")]
     [ApiController]
-    [Authorize(Roles = "Owner")]
+    [Authorize] 
     public class MenuController : ControllerBase
     {
         private readonly IMenuService _menuService;
@@ -27,9 +27,10 @@ namespace System.APIs.Controllers
             var response = await _menuService.GetCategoriesAsync(storeId);
             return StatusCode(response.StatusCode, response);
         }
+
         //* Get deleted Categories
         [HttpGet("categories/deleted/{storeId}")]
-        [AllowAnonymous]
+        [Authorize(Roles = "Owner")] 
         public async Task<IActionResult> GetDeletedCategories(int storeId)
         {
             var response = await _menuService.GetDeletedCategoriesAsync(storeId);
@@ -38,6 +39,7 @@ namespace System.APIs.Controllers
 
         //* Create Category
         [HttpPost("categories")]
+        [Authorize(Roles = "Owner")]
         public async Task<IActionResult> CreateCategory([FromBody] CategoryDto request)
         {
             var response = await _menuService.CreateCategoryAsync(request.Name, request.StoreId);
@@ -46,6 +48,7 @@ namespace System.APIs.Controllers
 
         //* Update Category
         [HttpPut("categories/{id}")]
+        [Authorize(Roles = "Owner")]
         public async Task<IActionResult> UpdateCategory(int id, [FromBody] CategoryDto category)
         {
             var response = await _menuService.UpdateCategoryAsync(id, category.Name);
@@ -54,6 +57,7 @@ namespace System.APIs.Controllers
 
         //* Delete Category
         [HttpDelete("categories/{id}")]
+        [Authorize(Roles = "Owner")] 
         public async Task<IActionResult> DeleteCategory(int id)
         {
             var response = await _menuService.DeleteCategoryAsync(id);
@@ -62,6 +66,7 @@ namespace System.APIs.Controllers
 
         //* Restore Category
         [HttpPut("categories/restore/{id}")]
+        [Authorize(Roles = "Owner")]
         public async Task<IActionResult> RestoreCategory(int id)
         {
             var response = await _menuService.RestoreCategoryAsync(id);
@@ -72,9 +77,9 @@ namespace System.APIs.Controllers
 
         #region Menu Items
 
-        //* Get Total Items Count
-        [AllowAnonymous]
+        //* Get All Items 
         [HttpGet("items/all/{storeId}")]
+        [AllowAnonymous] 
         public async Task<IActionResult> GetAllItemsForStore(int storeId)
         {
             var response = await _menuService.GetAllItemsAsync(storeId);
@@ -83,6 +88,7 @@ namespace System.APIs.Controllers
 
         //* Create Item
         [HttpPost("items")]
+        [Authorize(Roles = "Owner")] 
         public async Task<IActionResult> CreateItem([FromBody] ItemDto request)
         {
             var response = await _menuService.CreateItemAsync(request.Name, request.Price, request.PointsRequired, request.CategoryId);
@@ -91,6 +97,7 @@ namespace System.APIs.Controllers
 
         //* Update Item
         [HttpPut("items/{id}")]
+        [Authorize(Roles = "Owner")] 
         public async Task<IActionResult> UpdateItem(int id, [FromBody] UpdateMenuItemRequest request)
         {
             var response = await _menuService.UpdateItemAsync(id, request.Name, request.Price, request.PointsRequired);
@@ -99,14 +106,16 @@ namespace System.APIs.Controllers
 
         //* Delete Item
         [HttpDelete("items/{id}")]
+        [Authorize(Roles = "Owner")] 
         public async Task<IActionResult> DeleteItem(int id)
         {
             var response = await _menuService.DeleteItemAsync(id);
             return StatusCode(response.StatusCode, response);
-        } 
+        }
 
         //* Delete Hard Item
         [HttpDelete("items/hard/{id}")]
+        [Authorize(Roles = "Owner")]
         public async Task<IActionResult> DeleteHardItem(int id)
         {
             var response = await _menuService.DeleteHardItemAsync(id);
@@ -115,6 +124,7 @@ namespace System.APIs.Controllers
 
         //* Restore Item
         [HttpPut("items/restore/{id}")]
+        [Authorize(Roles = "Owner")]
         public async Task<IActionResult> RestoreItem(int id)
         {
             var response = await _menuService.RestoreItemAsync(id);
@@ -128,10 +138,11 @@ namespace System.APIs.Controllers
         {
             var response = await _menuService.GetItemsAsync(categoryId);
             return StatusCode(response.StatusCode, response);
-        }  
-        
+        }
+
         //* Get Deleted Items
         [HttpGet("items/deleted/{categoryId}")]
+        [Authorize(Roles = "Owner")] 
         public async Task<IActionResult> GetDeletedItems(int categoryId)
         {
             var response = await _menuService.GetDeletedItemsAsync(categoryId);
@@ -141,7 +152,3 @@ namespace System.APIs.Controllers
         #endregion
     }
 }
-
-
-
-

@@ -5,7 +5,7 @@ using System.Shared.DTOs.Assistances;
 
 namespace System.APIs.Controllers
 {
-    [Route("api/assistance-requests")]
+    [Route("api/assistance")]
     [ApiController]
     public class AssistanceRequestController : ControllerBase
     {
@@ -19,7 +19,7 @@ namespace System.APIs.Controllers
         #region Assistance Requests
 
         //* Create Assistance Request (For Customer)
-        [HttpPost]
+        [HttpPost("create")]
         [AllowAnonymous] // Allow customers to create assistance requests
         public async Task<IActionResult> CreateAssistanceRequest([FromBody] CreateAssistanceRequest request)
         {

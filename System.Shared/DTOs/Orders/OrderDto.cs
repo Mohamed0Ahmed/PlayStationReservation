@@ -1,10 +1,10 @@
-﻿using System.Domain.Enums;
-using System.Shared.BaseModel;
+﻿
 
-namespace System.Domain.Models
+namespace System.Shared.DTOs.Orders
 {
-    public class Order : BaseEntity<int>
+    public class OrderDto
     {
+        public int Id { get; set; }
         public int CustomerId { get; set; }
         public string CustomerNumber { get; set; } = string.Empty;
         public int RoomId { get; set; }
@@ -13,6 +13,6 @@ namespace System.Domain.Models
         public Status Status { get; set; }
         public string RejectionReason { get; set; } = string.Empty;
         public DateTime OrderDate { get; set; }
-        public List<OrderItem> OrderItems { get; set; } = [];
+        public List<ItemsDto> OrderItems { get; set; } = [];
     }
 }

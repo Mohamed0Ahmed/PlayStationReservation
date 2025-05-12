@@ -38,7 +38,8 @@ namespace System.APIs
                 {
                     builder.WithOrigins("https://mohamed0ahmed.github.io", "http://localhost:4200")
                            .AllowAnyMethod()
-                           .AllowAnyHeader();
+                           .AllowAnyHeader()
+                           .AllowCredentials();
                 });
             });
 

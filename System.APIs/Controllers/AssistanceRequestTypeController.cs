@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Application.Abstraction;
 using System.Domain.Models;
 using System.Shared;
+using System.Shared.DTOs.Assistances;
 
 namespace System.APIs.Controllers
 {
@@ -39,18 +40,18 @@ namespace System.APIs.Controllers
         //* Create Default Assistance Type
         [Authorize(Roles = "Admin")]
         [HttpPost("default")]
-        public async Task<IActionResult> CreateDefaultAssistanceType([FromBody] string name)
+        public async Task<IActionResult> CreateDefaultAssistanceType([FromBody] AssistanceDto assistance)
         {
-            var response = await _assistanceRequestTypeService.CreateDefaultAssistanceTypeAsync(name);
+            var response = await _assistanceRequestTypeService.CreateDefaultAssistanceTypeAsync(assistance.Name);
             return StatusCode(response.StatusCode, response);
         }
 
         //* Update Default Assistance Type
         [Authorize(Roles = "Admin")]
         [HttpPut("default/{id}")]
-        public async Task<IActionResult> UpdateDefaultAssistanceType(int id, [FromBody] string name)
+        public async Task<IActionResult> UpdateDefaultAssistanceType(int id, [FromBody] AssistanceDto assistance)
         {
-            var response = await _assistanceRequestTypeService.UpdateDefaultAssistanceTypeAsync(id, name);
+            var response = await _assistanceRequestTypeService.UpdateDefaultAssistanceTypeAsync(id, assistance.Name);
             return StatusCode(response.StatusCode, response);
         }
 
@@ -83,28 +84,32 @@ namespace System.APIs.Controllers
         {
             var response = await _assistanceRequestTypeService.GetAllAssistanceRequestTypesAsync(storeId);
             return StatusCode(response.StatusCode, response);
+        }  
+        
+        //* Get All Deleted Assistance Request Types
+        [Authorize(Roles = "Owner")]
+        [HttpGet("store/deleted/{storeId}")]
+        public async Task<IActionResult> GetAllDeletedAssistanceRequestTypes(int storeId)
+        {
+            var response = await _assistanceRequestTypeService.GetAllDeletedAssistanceRequestTypesAsync(storeId);
+            return StatusCode(response.StatusCode, response);
         }
 
         //* Create Assistance Request Type
         [Authorize(Roles = "Owner")]
         [HttpPost("store/{storeId}")]
-        public async Task<IActionResult> CreateAssistanceRequestType(int storeId, [FromBody] string name)
+        public async Task<IActionResult> CreateAssistanceRequestType(int storeId, [FromBody] AssistanceDto assistance)
         {
-            var response = await _assistanceRequestTypeService.CreateAssistanceRequestTypeAsync(name, storeId);
+            var response = await _assistanceRequestTypeService.CreateAssistanceRequestTypeAsync(assistance.Name, storeId);
             return StatusCode(response.StatusCode, response);
         }
 
         //* Update Assistance Request Type
         [Authorize(Roles = "Owner")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateAssistanceRequestType(int id, [FromBody] string name)
+        public async Task<IActionResult> UpdateAssistanceRequestType(int id, [FromBody] AssistanceDto assistance)
         {
-            if (string.IsNullOrEmpty(name))
-            {
-                return BadRequest(new ApiResponse<AssistanceRequestType>("اسم المساعدة مطلوب", 400));
-            }
-
-            var response = await _assistanceRequestTypeService.UpdateAssistanceRequestTypeAsync(id, name);
+            var response = await _assistanceRequestTypeService.UpdateAssistanceRequestTypeAsync(id, assistance.Name);
             return StatusCode(response.StatusCode, response);
         }
 
