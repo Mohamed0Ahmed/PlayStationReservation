@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Application.Abstraction;
-using System.Domain.Models;
-using System.Shared;
 using System.Shared.DTOs.Assistances;
 
 namespace System.APIs.Controllers

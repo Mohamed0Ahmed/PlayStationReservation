@@ -135,7 +135,8 @@ namespace System.APIs.Controllers
             {
                 new("storeId", store.Id.ToString()),
                 new("roomId", room.Id.ToString()),
-                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new(ClaimTypes.Role, "Room")
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));

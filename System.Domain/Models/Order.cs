@@ -7,6 +7,7 @@ namespace System.Domain.Models
     {
         public int CustomerId { get; set; }
         public string CustomerNumber { get; set; } = string.Empty;
+        public string RoomName { get; set; } = string.Empty;
         public int RoomId { get; set; }
         public int StoreId { get; set; }
         public decimal TotalAmount { get; set; }

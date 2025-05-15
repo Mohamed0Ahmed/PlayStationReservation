@@ -5,6 +5,7 @@ namespace System.Domain.Models
 {
     public class Request : BaseEntity<int>
     {
+        public string RoomName { get; set; } = string.Empty;
         public int? CustomerId { get; set; }
         public int RoomId { get; set; }
         public int StoreId { get; set; }

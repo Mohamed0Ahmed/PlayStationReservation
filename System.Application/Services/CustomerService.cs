@@ -63,8 +63,8 @@ namespace System.Application.Services
                 return new ApiResponse<int>("العميل غير موجود", 404);
 
             return new ApiResponse<int>(customer.Points, "تم جلب النقاط بنجاح");
-        }  
-        
+        }
+
         //* Get Customer Points
         //public async Task<ApiResponse<IEnumerable<CustomerDto>>> GetAllCustomers()
         //{

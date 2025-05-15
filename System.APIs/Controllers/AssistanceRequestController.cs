@@ -2,10 +2,11 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Application.Abstraction;
 using System.Shared.DTOs.Assistances;
+using System.Shared.DTOs.Orders;
 
 namespace System.APIs.Controllers
 {
-    [Route("api/assistance")]
+    [Route("api/assistance/request")]
     [ApiController]
     public class AssistanceRequestController : ControllerBase
     {
@@ -20,7 +21,7 @@ namespace System.APIs.Controllers
 
         //* Create Assistance Request (For Customer)
         [HttpPost("create")]
-        [AllowAnonymous] // Allow customers to create assistance requests
+        [AllowAnonymous]
         public async Task<IActionResult> CreateAssistanceRequest([FromBody] CreateAssistanceRequest request)
         {
             var response = await _assistanceRequestService.CreateAssistanceRequestAsync(request.RoomId, request.RequestTypeId);
@@ -57,9 +58,9 @@ namespace System.APIs.Controllers
         //* Reject Assistance Request
         [HttpPut("reject/{id}")]
         [Authorize(Roles = "Owner")]
-        public async Task<IActionResult> RejectAssistanceRequest(int id, [FromBody] string rejectionReason)
+        public async Task<IActionResult> RejectAssistanceRequest(int id, [FromBody] RejectDto reject)
         {
-            var response = await _assistanceRequestService.RejectAssistanceRequestAsync(id, rejectionReason);
+            var response = await _assistanceRequestService.RejectAssistanceRequestAsync(id, reject.Reason);
             return StatusCode(response.StatusCode, response);
         }
 

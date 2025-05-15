@@ -41,6 +41,7 @@ namespace System.Application.Services
             {
                 var order = new Order
                 {
+                    RoomName = room.Username,
                     CustomerNumber = customer.PhoneNumber,
                     StoreId = customer.StoreId,
                     CustomerId = customer.Id,
@@ -108,6 +109,8 @@ namespace System.Application.Services
             return new ApiResponse<IEnumerable<OrderDto>>(orderDto, "تم جلب الطلبات المعلقة بنجاح");
         }
 
+
+
         //* Get All Orders
         public async Task<ApiResponse<IEnumerable<OrderDto>>> GetOrdersAsync(int storeId, bool includeDeleted = false)
         {
@@ -121,6 +124,8 @@ namespace System.Application.Services
             var orderDto = orders.Adapt<List<OrderDto>>();
             return new ApiResponse<IEnumerable<OrderDto>>(orderDto, "تم جلب الطلبات بنجاح");
         }
+
+
 
         //* Approve Order
         public async Task<ApiResponse<OrderDto>> ApproveOrderAsync(int orderId)
@@ -161,6 +166,8 @@ namespace System.Application.Services
             return new ApiResponse<OrderDto>(orderDto, "تم الموافقة على الطلب بنجاح");
         }
 
+
+
         //* Reject Order
         public async Task<ApiResponse<OrderDto>> RejectOrderAsync(int orderId, string rejectionReason)
         {
@@ -188,6 +195,8 @@ namespace System.Application.Services
             await _notificationService.SendOrderStatusUpdateAsync(order.RoomId, false, rejectionReason);
             return new ApiResponse<OrderDto>(orderDto, "تم رفض الطلب بنجاح");
         }
+
+
 
         //* Get Total Orders Count
         public async Task<ApiResponse<int>> GetTotalOrdersCountAsync(int storeId)
