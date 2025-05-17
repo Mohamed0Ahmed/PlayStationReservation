@@ -48,7 +48,9 @@ namespace System.Application.Services
             var message = isApproved
                 ? "تم الموافقة على طلبك"
                 : $"تم رفض طلبك للسبب: {rejectionReason}";
-            await _hubContext.Clients.Group($"Room_{roomId}").SendAsync("ReceiveStatusUpdate", message);
+            await _hubContext.Clients.Group($"Room_{roomId}")
+                                     .SendAsync("ReceiveStatusUpdate", new { roomId = roomId.ToString(), message });
+
             return new ApiResponse<bool>(true, isApproved ? "تم إرسال إشعار الموافقة بنجاح" : "تم إرسال إشعار الرفض بنجاح");
         }
 
@@ -58,7 +60,8 @@ namespace System.Application.Services
             var message = isApproved
                 ? "تم الموافقة على طلب المساعدة الخاص بك"
                 : $"تم رفض طلب المساعدة الخاص بك للسبب: {rejectionReason}";
-            await _hubContext.Clients.Group($"Room_{roomId}").SendAsync("ReceiveStatusUpdate", message);
+            await _hubContext.Clients.Group($"Room_{roomId}")
+                                     .SendAsync("ReceiveStatusUpdate", new { roomId = roomId.ToString(), message });
             return new ApiResponse<bool>(true, isApproved ? "تم إرسال إشعار الموافقة بنجاح" : "تم إرسال إشعار الرفض بنجاح");
         }
 

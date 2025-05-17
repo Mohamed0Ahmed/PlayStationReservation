@@ -143,7 +143,7 @@ namespace System.Application.Services
         #region Menu Items
 
         //* Create Item
-        public async Task<ApiResponse<ItemDto>> CreateItemAsync(string name, decimal price, int pointsRequired, int categoryId)
+        public async Task<ApiResponse<ItemDto>> CreateItemAsync(string name, decimal price, int categoryId)
         {
             var category = await _unitOfWork.GetRepository<Category, int>().GetByIdAsync(categoryId);
             if (category == null)
@@ -160,7 +160,7 @@ namespace System.Application.Services
             {
                 Name = name,
                 Price = price,
-                PointsRequired = pointsRequired,
+                //PointsRequired = pointsRequired,
                 CategoryId = categoryId,
                 StoreId = category.StoreId,
                 CreatedOn = DateTime.UtcNow
@@ -174,11 +174,8 @@ namespace System.Application.Services
         }
 
         //* Update Item
-        public async Task<ApiResponse<ItemDto>> UpdateItemAsync(int itemId, string name, decimal price, int pointsRequired)
+        public async Task<ApiResponse<ItemDto>> UpdateItemAsync(int itemId, string name, decimal price)
         {
-            if (itemId <= 0 || string.IsNullOrEmpty(name) || price <= 0 || pointsRequired < 0)
-                return new ApiResponse<ItemDto>(" اسم الصنف، السعر، والنقاط المطلوبة يجب أن يكونوا صالحين", 200);
-
 
             var item = await _unitOfWork.GetRepository<MenuItem, int>().GetByIdAsync(itemId);
             if (item == null)
@@ -193,7 +190,7 @@ namespace System.Application.Services
 
             item.Name = name;
             item.Price = price;
-            item.PointsRequired = pointsRequired;
+            //item.PointsRequired = pointsRequired;
             item.LastModifiedOn = DateTime.UtcNow;
             _unitOfWork.GetRepository<MenuItem, int>().Update(item);
             await _unitOfWork.SaveChangesAsync();
@@ -283,7 +280,7 @@ namespace System.Application.Services
             var items = await _unitOfWork.GetRepository<MenuItem, int>().FindAsync(
                 mi => mi.StoreId == storeId);
             if (!items.Any())
-                return new ApiResponse<IEnumerable<ItemDto>>("لم يتم اضافة اي منتج حاليا");
+                return new ApiResponse<IEnumerable<ItemDto>>("لم يتم اضافة اي منتج حاليا",200);
 
 
             var itemsDto = items.Adapt<IEnumerable<ItemDto>>();

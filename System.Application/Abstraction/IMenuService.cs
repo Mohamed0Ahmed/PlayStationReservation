@@ -11,8 +11,8 @@ namespace System.Application.Abstraction
         Task<ApiResponse<bool>> RestoreCategoryAsync(int categoryId);
         Task<ApiResponse<IEnumerable<CategoryDto>>> GetCategoriesAsync(int storeId);
         Task<ApiResponse<IEnumerable<CategoryDto>>> GetDeletedCategoriesAsync(int storeId);
-        Task<ApiResponse<ItemDto>> CreateItemAsync(string name, decimal price, int pointsRequired, int categoryId);
-        Task<ApiResponse<ItemDto>> UpdateItemAsync(int itemId, string name, decimal price, int pointsRequired);
+        Task<ApiResponse<ItemDto>> CreateItemAsync(string name, decimal price, int categoryId);
+        Task<ApiResponse<ItemDto>> UpdateItemAsync(int itemId, string name, decimal price);
         Task<ApiResponse<bool>> DeleteItemAsync(int itemId);
         Task<ApiResponse<bool>> DeleteHardItemAsync(int itemId);
         Task<ApiResponse<bool>> RestoreItemAsync(int itemId);

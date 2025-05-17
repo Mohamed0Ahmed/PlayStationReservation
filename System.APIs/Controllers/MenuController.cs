@@ -91,7 +91,7 @@ namespace System.APIs.Controllers
         [Authorize(Roles = "Owner")] 
         public async Task<IActionResult> CreateItem([FromBody] ItemDto request)
         {
-            var response = await _menuService.CreateItemAsync(request.Name, request.Price, request.PointsRequired, request.CategoryId);
+            var response = await _menuService.CreateItemAsync(request.Name, request.Price, request.CategoryId);
             return StatusCode(response.StatusCode, response);
         }
 
@@ -100,7 +100,7 @@ namespace System.APIs.Controllers
         [Authorize(Roles = "Owner")] 
         public async Task<IActionResult> UpdateItem(int id, [FromBody] UpdateMenuItemRequest request)
         {
-            var response = await _menuService.UpdateItemAsync(id, request.Name, request.Price, request.PointsRequired);
+            var response = await _menuService.UpdateItemAsync(id, request.Name, request.Price);
             return StatusCode(response.StatusCode, response);
         }
 

@@ -16,8 +16,8 @@ namespace System.Infrastructure.Data.Configuration
                 .IsRequired()
                 .HasPrecision(18, 2);
 
-            builder.Property(mi => mi.PointsRequired)
-                .IsRequired();
+            //builder.Property(mi => mi.PointsRequired)
+            //    .IsRequired();
 
 
             builder.HasOne<Category>()

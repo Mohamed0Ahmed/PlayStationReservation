@@ -76,7 +76,7 @@ namespace System.APIs.Controllers
         #region Custom Assistance Request Types
 
         //* Get All Assistance Request Types
-        [Authorize(Roles = "Owner")]
+        //[Authorize(Roles = "Owner")]
         [HttpGet("store/{storeId}")]
         public async Task<IActionResult> GetAllAssistanceRequestTypes(int storeId)
         {
