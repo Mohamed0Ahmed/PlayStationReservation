@@ -27,13 +27,15 @@ namespace System.APIs.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
+
         //* Update Gift
-        [HttpPut("{id}")]
+        [HttpPut]
         public async Task<IActionResult> UpdateGift([FromBody] GiftDto request)
         {
             var response = await _giftService.UpdateGiftAsync(request.Id, request.Name, request.PointsRequired);
             return StatusCode(response.StatusCode, response);
         }
+
 
         //* Delete Gift
         [HttpDelete("{id}")]
@@ -43,6 +45,7 @@ namespace System.APIs.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
+
         //* Restore Gift
         [HttpPut("restore/{id}")]
         public async Task<IActionResult> RestoreGift(int id)
@@ -51,13 +54,24 @@ namespace System.APIs.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
+
         //* Get Gifts
         [HttpGet("store/{storeId}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetGifts(int storeId)
         {
             var response = await _giftService.GetGiftsAsync(storeId);
             return StatusCode(response.StatusCode, response);
         }
+
+        //* Get Deleted Gifts
+        [HttpGet("store/deleted/{storeId}")]
+        public async Task<IActionResult> GetDeletedGifts(int storeId)
+        {
+            var response = await _giftService.GetDeletedGiftsAsync(storeId);
+            return StatusCode(response.StatusCode, response);
+        }
+
 
         //* Get Total Gifts Count
         [HttpGet("count/{storeId}")]
