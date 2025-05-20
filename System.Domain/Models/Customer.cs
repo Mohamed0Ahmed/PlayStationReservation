@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Shared.BaseModel;
 
 namespace System.Domain.Models
@@ -13,5 +13,6 @@ namespace System.Domain.Models
         public int StoreId { get; set; }
         public List<Order> Orders { get; set; } = [];
         public List<Request> AssistanceRequests { get; set; } = [];
+        //public List<GiftRedemption> GiftRedemptions { get; set; } = [];
     }
 }

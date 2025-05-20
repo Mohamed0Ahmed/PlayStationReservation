@@ -23,6 +23,8 @@ namespace System.Infrastructure.Data
         public DbSet<Gift> Gifts { get; set; }
         public DbSet<AssistanceRequestType> AssistanceRequestTypes { get; set; }
         public DbSet<DefaultAssistanceRequestType> DefaultAssistance { get; set; }
+        public DbSet<GiftRedemption> GiftRedemptions { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

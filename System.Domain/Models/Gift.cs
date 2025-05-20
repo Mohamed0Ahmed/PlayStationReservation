@@ -1,4 +1,5 @@
-﻿using System.Shared.BaseModel;
+using System.Collections.Generic;
+using System.Shared.BaseModel;
 
 namespace System.Domain.Models
 {
@@ -7,5 +8,7 @@ namespace System.Domain.Models
         public string Name { get; set; }
         public int PointsRequired { get; set; }
         public int StoreId { get; set; }
+        
+ 
     }
 }

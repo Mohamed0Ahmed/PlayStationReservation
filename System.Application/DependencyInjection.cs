@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using System.Application.Abstraction;
 using System.Application.Services;
 
@@ -18,6 +18,7 @@ namespace System.Application
             services.AddScoped<IRequestService, RequestService>();
             services.AddScoped<INotificationService, NotificationService>();
             services.AddScoped<IGiftService, GiftService>();
+            services.AddScoped<IGiftRedemptionService, GiftRedemptionService>();
             services.AddScoped<IAssistanceRequestTypeService, AssistanceRequestTypeService>();
 
             return services;
