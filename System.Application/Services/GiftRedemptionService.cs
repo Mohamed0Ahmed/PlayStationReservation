@@ -113,18 +113,13 @@ namespace System.Application.Services
             await _unitOfWork.SaveChangesAsync();
 
             // Send status update notification to the room
-            await _notificationService.SendGiftRedemptionStatusUpdateAsync(
-                redemption.RoomId,
-                dto.IsApproved,
-                dto.IsApproved ? null : dto.RejectionReason);
+            await _notificationService.SendGiftRedemptionStatusUpdateAsync(redemption.RoomId, dto.IsApproved, dto.IsApproved ? null : dto.RejectionReason);
 
             var result = redemption.Adapt<GiftRedemptionDto>();
             result.GiftName = room.Username;
-            result.CustomerPhone = customer.PhoneNumber;
+            result.CustomerNumber = customer.PhoneNumber;
 
-            return new ApiResponse<GiftRedemptionDto>(
-                result,
-                dto.IsApproved ? "تمت الموافقة على الطلب بنجاح" : "تم رفض الطلب");
+            return new ApiResponse<GiftRedemptionDto>(result, dto.IsApproved ? "تمت الموافقة على الطلب بنجاح" : "تم رفض الطلب");
         }
 
 
@@ -134,17 +129,8 @@ namespace System.Application.Services
                 .FindWithIncludesAsync(
                     predicate: r => r.StoreId == storeId && r.Status == Status.Pending);
 
-            var result = redemptions.Select(r => new GiftRedemptionDto
-            {
-                Id = r.Id,
-                GiftName = r.GiftName,
-                CustomerPhone = r.CustomerNumber,
-                RoomName = r.RoomName,
-                StoreId = r.StoreId,
-                PointsUsed = r.PointsUsed,
-                Status = r.Status.ToString(),
-                RejectionReason = r.RejectionReason,
-            });
+
+            var result = redemptions.Adapt<IEnumerable<GiftRedemptionDto>>();
 
             return new ApiResponse<IEnumerable<GiftRedemptionDto>>(result);
         }
@@ -155,17 +141,8 @@ namespace System.Application.Services
             var redemptions = await _unitOfWork.GetRepository<GiftRedemption, int>()
                 .FindAsync(r => r.CustomerId == customerId);
 
-            var result = redemptions.Select(r => new GiftRedemptionDto
-            {
-                Id = r.Id,
-                GiftName = r.GiftName,
-                CustomerPhone = r.CustomerNumber,
-                RoomName = r.RoomName,
-                StoreId = r.StoreId,
-                PointsUsed = r.PointsUsed,
-                Status = r.Status.ToString(),
-                RejectionReason = r.RejectionReason,
-            });
+            var result = redemptions.Adapt<IEnumerable<GiftRedemptionDto>>();
+
 
             return new ApiResponse<IEnumerable<GiftRedemptionDto>>(result);
         }
@@ -187,20 +164,9 @@ namespace System.Application.Services
             var redemptions = await _unitOfWork.GetRepository<GiftRedemption, int>()
                 .FindAsync(r => r.StoreId == storeId);
             if (redemptions == null)
-                return new ApiResponse<IEnumerable<GiftRedemptionDto>>("لا يوجد طلبات هدايا حاليا" , 200);
+                return new ApiResponse<IEnumerable<GiftRedemptionDto>>("لا يوجد طلبات هدايا حاليا", 200);
 
-            var result = redemptions.Select(r => new GiftRedemptionDto
-            {
-                Id = r.Id,
-                GiftName = r.GiftName,
-                CustomerPhone = r.CustomerNumber,
-                RoomName = r.RoomName,
-                StoreId = r.StoreId,
-                PointsUsed = r.PointsUsed,
-                Status = r.Status.ToString(),
-                RejectionReason = r.RejectionReason,
-            });
-
+            var result = redemptions.Adapt<IEnumerable<GiftRedemptionDto>>();
             return new ApiResponse<IEnumerable<GiftRedemptionDto>>(result);
         }
     }

@@ -7,12 +7,12 @@ namespace System.Shared.DTOs.GiftRedemptions
         public int GiftId { get; set; }
         public string GiftName { get; set; } = string.Empty;
         public int CustomerId { get; set; }
-        public string CustomerPhone { get; set; } = string.Empty;
+        public string CustomerNumber { get; set; } = string.Empty;
         public int RoomId { get; set; }
         public string RoomName { get; set; } = string.Empty;
         public int StoreId { get; set; }
         public int PointsUsed { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public Status Status { get; set; } 
         public string RejectionReason { get; set; } = string.Empty;
         public bool? IsCustomerConfirmed { get; set; }
     }

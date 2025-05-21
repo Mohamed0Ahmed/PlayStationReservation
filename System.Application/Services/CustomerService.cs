@@ -1,4 +1,5 @@
-﻿using System.Application.Abstraction;
+﻿using Mapster;
+using System.Application.Abstraction;
 using System.Domain.Models;
 using System.Infrastructure.Unit;
 using System.Shared;
@@ -42,38 +43,20 @@ namespace System.Application.Services
 
 
         //* Get Customer by Phone
-        public async Task<ApiResponse<Customer>> GetCustomerByPhoneAsync(string phoneNumber, int storeId)
+        public async Task<ApiResponse<CustomerDto>> GetCustomerByPhoneAsync(string phoneNumber, int storeId)
         {
             var customers = await _unitOfWork.GetRepository<Customer, int>().FindWithIncludesAsync(
                 c => c.PhoneNumber == phoneNumber && c.StoreId == storeId);
             var customer = customers.FirstOrDefault();
             if (customer == null)
-                return new ApiResponse<Customer>("العميل غير موجود", 404);
+                return new ApiResponse<CustomerDto>("العميل غير موجود", 200);
 
+            var customerDto = customer.Adapt<CustomerDto>();
 
-            return new ApiResponse<Customer>(customer, "تم جلب بيانات العميل بنجاح");
+            return new ApiResponse<CustomerDto>(customerDto, "تم جلب بيانات العميل بنجاح");
         }
 
 
-        //* Get Customer Points
-        public async Task<ApiResponse<int>> GetCustomerPointsAsync(int customerId)
-        {
-            var customer = await _unitOfWork.GetRepository<Customer, int>().GetByIdAsync(customerId);
-            if (customer == null)
-                return new ApiResponse<int>("العميل غير موجود", 404);
-
-            return new ApiResponse<int>(customer.Points, "تم جلب النقاط بنجاح");
-        }
-
-        //* Get Customer Points
-        //public async Task<ApiResponse<IEnumerable<CustomerDto>>> GetAllCustomers()
-        //{
-        //    var customers = await _unitOfWork.GetRepository<Customer, int>().GetAllAsync();
-        //    if (customers == null)
-        //        return new ApiResponse<IEnumerable<CustomerDto>>("العميل غير موجود", 404);
-
-        //    return new ApiResponse<int>(customer.Points, "تم جلب النقاط بنجاح");
-        //}
 
 
         //* Update Customer
@@ -81,13 +64,13 @@ namespace System.Application.Services
         {
             if (customerId <= 0 || string.IsNullOrEmpty(phoneNumber) || storeId <= 0)
             {
-                return new ApiResponse<Customer>("ادخل البيانات بشكل صحيح", 400);
+                return new ApiResponse<Customer>("ادخل البيانات بشكل صحيح", 200);
             }
 
             var customer = await _unitOfWork.GetRepository<Customer, int>().GetByIdAsync(customerId);
             if (customer == null)
             {
-                return new ApiResponse<Customer>("العميل غير موجود", 404);
+                return new ApiResponse<Customer>("العميل غير موجود", 200);
             }
 
             var existingCustomer = await _unitOfWork.GetRepository<Customer, int>().FindWithIncludesAsync(
@@ -95,7 +78,7 @@ namespace System.Application.Services
                 includeDeleted: false);
             if (existingCustomer != null)
             {
-                return new ApiResponse<Customer>("رقم التليفون موجود بالفعل لعميل آخر", 400);
+                return new ApiResponse<Customer>("رقم التليفون موجود بالفعل لعميل آخر", 200);
             }
 
             customer.PhoneNumber = phoneNumber;
@@ -114,13 +97,13 @@ namespace System.Application.Services
         {
             if (customerId <= 0)
             {
-                return new ApiResponse<bool>("الرقم ده مش موجود", 400);
+                return new ApiResponse<bool>("الرقم ده مش موجود", 200);
             }
 
             var customer = await _unitOfWork.GetRepository<Customer, int>().GetByIdAsync(customerId);
             if (customer == null)
             {
-                return new ApiResponse<bool>("الرقم ده مش موجود", 404);
+                return new ApiResponse<bool>("الرقم ده مش موجود", 200);
             }
 
             _unitOfWork.GetRepository<Customer, int>().Delete(customer);
@@ -135,7 +118,7 @@ namespace System.Application.Services
         {
             if (customerId <= 0)
             {
-                return new ApiResponse<bool>("الرقم ده مش موجود", 400);
+                return new ApiResponse<bool>("الرقم ده مش موجود", 200);
             }
 
             var customer = await _unitOfWork.GetRepository<Customer, int>().GetByIdAsync(customerId, onlyDeleted: true);

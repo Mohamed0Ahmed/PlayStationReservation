@@ -29,22 +29,15 @@ namespace System.APIs.Controllers
         }
 
         //* Get customer by phone
-        [HttpGet("phone")]
-        [Authorize(Roles = "Admin,Owner")]
+        [HttpPost("phone")]
         public async Task<IActionResult> GetCustomerByPhone([FromBody] CustomerDto customer)
         {
             var response = await _customerService.GetCustomerByPhoneAsync(customer.PhoneNumber, customer.StoreId);
             return StatusCode(response.StatusCode, response);
         }
 
-        //* Get customer points
-        [HttpGet("{customerId}/points")]
-        [Authorize(Roles = "Admin,Owner")]
-        public async Task<IActionResult> GetCustomerPoints(int customerId)
-        {
-            var response = await _customerService.GetCustomerPointsAsync(customerId);
-            return StatusCode(response.StatusCode, response);
-        }
+
+   
 
         //* Update customer
         [HttpPut]
@@ -55,6 +48,7 @@ namespace System.APIs.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
+
         //* Delete customer
         [HttpDelete("{customerId}")]
         [Authorize(Roles = "Admin")]
@@ -63,6 +57,7 @@ namespace System.APIs.Controllers
             var response = await _customerService.DeleteCustomerAsync(customerId);
             return StatusCode(response.StatusCode, response);
         }
+
 
         //* Restore customer
         [HttpPost("{customerId}/restore")]

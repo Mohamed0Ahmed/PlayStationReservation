@@ -71,7 +71,8 @@ namespace System.Application.Services
             var message = isApproved
                 ? "تم الموافقة على طلب استبدال الهدية الخاص بك"
                 : $"تم رفض طلب استبدال الهدية الخاص بك للسبب: {rejectionReason}";
-            await _hubContext.Clients.Group($"Room_{roomId}").SendAsync("ReceiveStatusUpdate", message);
+            await _hubContext.Clients.Group($"Room_{roomId}")
+                                     .SendAsync("ReceiveStatusUpdate", new { roomId = roomId.ToString(), message });
             return new ApiResponse<bool>(true, isApproved ? "تم إرسال إشعار الموافقة بنجاح" : "تم إرسال إشعار الرفض بنجاح");
         }
 
